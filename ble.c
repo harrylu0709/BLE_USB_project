@@ -7,9 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ble.h"
+#include "main.h"
 #include "ble_commands.h"
-#include "led.h"
 
 #define EXTI9_5 23
 
@@ -95,9 +94,8 @@ uint8_t EVENT_GATT_CHANGED[] = {0x04, 0xFF, 0x0B, 0x01, 0x0C};
 uint8_t ACI_GAP_SET_NON_DISCOVERABLE[] = {0x01, 0x81, 0xFC, 0x00}; // TODO - fill this in
 uint8_t ACI_GAP_SET_NON_DISCOVERABLE_COMPLETE[] = {0x04, 0x0E, 0x04, 0x01, 0x81, 0xFC, 0x00}; // TODO - fill this in
 
-extern int dataAvailable;
-extern uint8_t is_discoverable;
-extern void dwt_delay_ms(uint32_t ms);
+// extern void dwt_delay_ms(uint32_t ms);
+// extern uint8_t gatt_flag;
 uint32_t *pNVIC_ISPR0 = (uint32_t*)0xE000E200;
 
 // Device name sent in BLE advertisement packets
@@ -210,6 +208,13 @@ void xnucleo_init()
 
 	SPI_SSIConfig(SPI2, ENABLE);
 
+}
+
+void SoftwareReset() 
+{
+  // Set the SYSRESETREQ bit in the AIRCR to trigger a system reset
+  SCB->AIRCR = 0x05FA0000 | (SCB->AIRCR & 0x00000700) | 0x04; 
+  // Alternatively:
 }
 
 void ble_init()
@@ -332,7 +337,7 @@ int fetchBleEvent(uint8_t * container, int size)
 	while(GPIO_ReadFromInputPin(BLE_GPIO_PORT, BLE_INT_Pin) == 0)
 	{
 		cnt++;
-		if(cnt > 30000)
+		if(cnt > 10000)
 		{
 			cnt = 0;
 			break;
@@ -450,33 +455,35 @@ void catchBLE(uint8_t * byte1, uint8_t * byte2)
 {
 
 	int result = fetchBleEvent(buffer, 127);
-	
+
 	// int i;
 	// for(i=0;i<5;i++)
 	// {
 	// 	printf("%x ",buffer[i]);
 	// }
 	// printf("\n");
+
 	if (result == BLE_OK)
 	{
-		if (checkEventResp(buffer, EVENT_DISCONNECTED, 3) == BLE_OK)
+		if ((buffer[1] == EVENT_DISCONNECTED[1]) && checkEventResp(buffer, EVENT_DISCONNECTED, 3) == BLE_OK) /* 0x04, 0x05, 0x04, 0x00 */
 		{
 			//printf("disconnect\n");
 			setConnectable();
 		}
-		if (checkEventResp(buffer, EVENT_CONNECTED, 5) == BLE_OK)
+		if ((buffer[1] == EVENT_CONNECTED[1]) && checkEventResp(buffer, EVENT_CONNECTED, 5) == BLE_OK) /* 0x04, 0x3E, 0x13, 0x01, 0x00 */
 		{
 			//printf("connect\n");
 			// Little Endian Format
 			*(connectionHandler) = buffer[5];
 			*(connectionHandler + 1) = buffer[6];
 		}
-		if (checkEventResp(buffer, EVENT_GATT_CHANGED, 5) == BLE_OK)
+		if ((buffer[1] == EVENT_GATT_CHANGED[1]) && checkEventResp(buffer, EVENT_GATT_CHANGED, 5) == BLE_OK) /* 0x04, 0xFF, 0x0B, 0x01, 0x0C */
 		{
 			//printf("gatt\n");
-			*(connectionHandler) = buffer[5];
-			*(connectionHandler + 1) = buffer[6];
+			*(connectionHandler) = buffer[5];     // 0x01
+			*(connectionHandler + 1) = buffer[6]; // 0x08
 			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 1);
+			gatt_flag = 1;
 		}
 	}
 	else
@@ -484,6 +491,44 @@ void catchBLE(uint8_t * byte1, uint8_t * byte2)
 		//printf("fail\n");
 		//something bad is happening if I am here
 	}
+
+/*
+ios
+-------------
+1 1 51 a7 59 
+4 ff b 1 c 
+4 e 4 1 6 
+
+andorid
+-------------
+1 1 f4 5d 75 
+4 3e a 3 0 
+4 ff b 1 c
+-------------
+1 1 f4 5d 75 
+4 e 4 1 6 
+4 3e a 3 0 
+4 ff b 1 c 
+
+fail
+-------------
+1 1 f4 5d 75 
+4 e 4 1 6 
+4 3e a 3 0 
+f 0 2 0 0 
+
+1 1 3f 59 40 
+4 e 4 1 6 
+24 0 0 0 f4 
+4 e 4 1 6 
+
+1 1 3f 59 40
+4 3e a 3 0
+4 e 4 1 6
+f 0 2 0 0
+
+*/
+
 }
 
 void setConnectable()
@@ -668,6 +713,8 @@ void disconnectBLE()
 	if (connectionHandler[0] == -1 && connectionHandler[1] == -1)
 	{
 		// should not be -1
+		// printf("reset 1\n");
+		SoftwareReset();
 		return;
 	}
 	uint8_t command[7];
@@ -676,23 +723,33 @@ void disconnectBLE()
 	command[5] = connectionHandler[1];
 	command[6] = 0x13;
 	int result = 1;
+	int i;
 	if (BLE_command(command, sizeof(command), EVENT_DISCONNECT_PENDING, 7, 0) == BLE_OK)
 	{
-		dwt_delay_ms(80);
-		result = fetchBleEvent(buffer, 127);
+		for(i = 0 ; i < 5 ; i++)
+		{
+			result = fetchBleEvent(buffer, 127);
+			if(result == BLE_OK) break;
+		}
 		if(result == BLE_OK)
 		{
 			if (checkEventResp(buffer, EVENT_DISCONNECTED, 4) == BLE_OK)
 			{
-				setConnectable();
 				connectionHandler[0] = -1;
 				connectionHandler[1] = -1;
+				setConnectable();
 				GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 0);
 				GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
+				gatt_flag = 0;
 			}
 		}
 		free(rxEvent);
 	}
+	if(gatt_flag)
+	{
+		// printf("reset 2\n");
+		SoftwareReset();
+	} 
 	//printf("%d %d\n",connectionHandler[0],connectionHandler[1]);
 }
 /**

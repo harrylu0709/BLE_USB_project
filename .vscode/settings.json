@@ -12,6 +12,9 @@
         "stm32f407xx_rcc_driver.h": "c",
         "usbd_desc.h": "c",
         "stm32f4xx_hal_def.h": "c",
-        "usbd_ctlreq.h": "c"
+        "usbd_ctlreq.h": "c",
+        "main.h": "c",
+        "lis3dsh.h": "c",
+        "stdio.h": "c"
     }
 }

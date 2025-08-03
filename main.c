@@ -1,10 +1,7 @@
 
 
 #include <stdio.h>
-#include "LIS3DSH.h"
-#include "led.h"
-#include "ble.h"
-
+#include "main.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_cdc.h"
@@ -12,16 +9,6 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_def.h"
 #include "stm32f4xx_hal_pcd.h"
-
-#define SYSTICK_TIM_CLK   				16000000UL //16MHz
-#define NON_DISCOVER_SEC				10
-#define LED_PERIOD_MS	  				500
-#define DETECT_MOVING_PERIOD	 	  	(NON_DISCOVER_SEC*(1000/LED_PERIOD_MS))
-#define MSG_RATE			  		    2000
-#define DWT_CTRL    					(*(volatile uint32_t*)0xE0001000)
-#define DWT_CYCCNT  					(*(volatile uint32_t*)0xE0001004)
-#define DEMCR       					(*(volatile uint32_t*)0xE000EDFC)
-#define READ_Z_AXIS						0
 
 TIM_Handle_t Timer5_Handle;
 USBD_HandleTypeDef hUsbDeviceFS;
@@ -49,10 +36,10 @@ void SystemClock_Config(void);
 void HAL_EnableCompensationCell(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void update_msg(unsigned char *msg);
-
-int16_t x;
-int16_t y;
-int16_t z;
+uint8_t gatt_flag = 0;
+int16_t acc_x;
+int16_t acc_y;
+int16_t acc_z;
 int lost_cnt_sec = 0;
 int dwt_cyc_unit = 0;
 /*
@@ -135,11 +122,11 @@ uint8_t Read_movement(void)
 #if READ_Z_AXIS
 	int res_z;
 #endif
-	LIS3DSH_read_xyz(&x, &y, &z);
-	res_x = twos_complement_to_signed(x, 16);
-	res_y = twos_complement_to_signed(y, 16);
+	LIS3DSH_read_xyz(&acc_x, &acc_y, &acc_z);
+	res_x = twos_complement_to_signed(acc_x, 16);
+	res_y = twos_complement_to_signed(acc_y, 16);
 #if READ_Z_AXIS
-	res_z = twos_complement_to_signed(z, 16);
+	res_z = twos_complement_to_signed(acc_z, 16);
 #endif
 	
 	if(res_x > ACC_TH_X || res_x  < -ACC_TH_X
@@ -274,7 +261,6 @@ int main(void)
 			}
 			else
 			{
-				dwt_delay_ms(30);
 				if(!is_discoverable)
 				{
 					setDiscoverability(1);
@@ -312,9 +298,9 @@ int main(void)
 					}
 					if(move_flag)
 					{
-						unsigned char msg_str[] = "freeze for     sec";
+						unsigned char msg_str[] = "freeze for        ";
 						update_msg(msg_str);
-						updateCharValue(NORDIC_UART_SERVICE_HANDLE, WRITE_CHAR_HANDLE, 0, sizeof(msg_str), msg_str);
+						if(gatt_flag)	updateCharValue(NORDIC_UART_SERVICE_HANDLE, WRITE_CHAR_HANDLE, 0, sizeof(msg_str), msg_str);
 					}
 				}
 			}
