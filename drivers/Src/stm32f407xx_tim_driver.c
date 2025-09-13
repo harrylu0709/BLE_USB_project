@@ -33,7 +33,7 @@ void timer_init(TIM_Handle_t *pTIMHandle)
      (16 MHz / (15999+1)) = 1 KHz timer clock speed */
 	pTIMHandle->pTIMx->PSC = pTIMHandle->Prescalar;
 
-  	/* (1 KHz / 1000) = 1Hz = 1s */
+  	/* (1000 / 1 KHz) = 1s */
   	/* So, this will generate the 1s delay */
 	pTIMHandle->pTIMx->ARR = pTIMHandle->Reload_Val;
 

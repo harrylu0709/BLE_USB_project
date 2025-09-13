@@ -1,13 +1,14 @@
 **BLE and USB Motion Monitor**
 
-![](slide1.JPG)
-![](slide2.JPG)
+![](images/slide1.JPG)
 
-![](slide3.JPG)
+![](images/slide2.JPG)
 
-![](slide4.JPG)
+![](images/slide3.JPG)
 
-![](slide5.JPG)
+![](images/slide4.JPG)
+
+![](images/slide5.JPG)
 
 Video demo:
 https://www.youtube.com/watch?v=hFGy5ZhACzI
