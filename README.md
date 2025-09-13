@@ -1,4 +1,4 @@
-BLE and USB Motion Monitor
+**BLE and USB Motion Monitor**
 
 ![](slide1.JPG)
 ![](slide2.JPG)
