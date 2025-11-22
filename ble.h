@@ -10,17 +10,17 @@
 
 //#include "ble_commands.h"
 #include "stm32f407xx.h"
-#define     BLE_GPIO_PORT       GPIOE
-#define     BLE_INT_Pin         GPIO_PIN_NO_9
-#define     BLE_RST_Pin         GPIO_PIN_NO_10
-#define     BLE_CS_Pin          GPIO_PIN_NO_11
+#define     BLE_GPIO_PORT                       GPIOE
+#define     BLE_INT_Pin                         GPIO_PIN_NO_9
+#define     BLE_RST_Pin                         GPIO_PIN_NO_10
+#define     BLE_CS_Pin                          GPIO_PIN_NO_11
 
-#define 	SPI2_SCK 			GPIO_PIN_NO_13
-#define 	SPI2_MISO 			GPIO_PIN_NO_14
-#define 	SPI2_MOSI 			GPIO_PIN_NO_15
+#define 	SPI2_SCK 			                GPIO_PIN_NO_13
+#define 	SPI2_MISO 			                GPIO_PIN_NO_14
+#define 	SPI2_MOSI 			                GPIO_PIN_NO_15
 
-#define     BLE_OK              0
-
+#define     BLE_OK                              0
+#define     ADVERTISE_THEN_NON_DISCOVERABLE     0
 #define EVENT_STARTUP_SIZE 6
 #define ACI_GATT_INIT_COMPLETE_SIZE 7
 #define SET_ATTRIBUTES(n) (n)
@@ -51,9 +51,9 @@ int checkEventResp(uint8_t *event, uint8_t *reference, int size);
 
 void sendCommand(uint8_t *command,int size);
 
-void catchBLE();
+void catchBLE(void);
 
-void setConnectable();
+void setConnectable(void);
 
 int BLE_command(uint8_t* command, int size, uint8_t* result, int sizeRes, int returnHandles);
 
@@ -62,8 +62,8 @@ void addService(uint8_t* UUID, uint8_t* handle, int attributes);
 void addCharacteristic(uint8_t* UUID,uint8_t* handleChar, uint8_t* handleService, uint8_t maxsize, uint8_t proprieties,uint8_t secPermissions,uint8_t gattEvtMask,uint8_t encryKeySize,uint8_t isVariable);
 
 void updateCharValue(uint8_t* handleService,uint8_t* handleChar, int offset, int size,uint8_t* data);
-
-void disconnectBLE();
+void reset_connection_state(void);
+void disconnectBLE(void);
 
 void setDiscoverability(uint8_t mode);
 #endif

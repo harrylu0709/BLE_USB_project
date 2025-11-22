@@ -79,8 +79,7 @@ uint8_t ADD_PRIMARY_SERVICE[] = {0x01, 0x02, 0xFD, 0x13, 0x02, 0x00, 0x00, 0x00,
 uint8_t ADD_PRIMARY_SERVICE_COMPLETE[] = {0x04, 0x0e, 0x06, 0x01, 0x02, 0xFD, 0x00};
 uint8_t ADD_CUSTOM_CHAR[] = {0x01, 0x04, 0xFD, 0x19, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x10, 0x01};
 
-uint8_t ADD_CUSTOM_CHAR_COMPLETE_UART[] = {0x04, 0x0e, 0x06, 0x01, 0x04, 0xFD, 0x00};
-uint8_t ADD_CUSTOM_CHAR_COMPLETE[] = {0x04, 0x0e, 0x04, 0x01, 0x06, 0xFD, 0x00};
+uint8_t ADD_CUSTOM_CHAR_COMPLETE[] = {0x04, 0x0e, 0x06, 0x01, 0x04, 0xFD, 0x00};
 
 uint8_t UPDATE_CHAR[] = {0x01, 0x06, 0xFD, 0x09, 0xff, 0xff, 0xff, 0xff, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
@@ -126,7 +125,8 @@ uint8_t READ_CHAR_HANDLE[2];
 uint16_t stackInitCompleteFlag = 0;
 uint8_t * rxEvent;
 int16_t connectionHandler[2] = {-1, -1}; // Little Endian Format for connection handler
-uint8_t flag = 0;
+uint8_t user_disconnect_flag = 0;
+
 /**
  * Initializes the BLE module with appropriate settings
  */
@@ -291,8 +291,9 @@ void ble_init()
 	free(rxEvent);
 
 	//This will start the advertisment,
+#if ADVERTISE_THEN_NON_DISCOVERABLE
 	setConnectable();
-	
+#endif
 	//add the nordic UART service
 	//add the nordic UART charachteristics
 	addService(UUID_NORDIC_UART_SERVICE, NORDIC_UART_SERVICE_HANDLE, SET_ATTRIBUTES(7)); //SET_ATTRIBUTES(1+2+3*2+3+3));//1 atribute service +2 attribute char readable+3*(2 NOTIFYABLE READABLE charachteristics)
@@ -308,11 +309,10 @@ void ble_init()
 	//printf("rx\n");
 
 
-	//printf("flag = %d\n", stackInitCompleteFlag);
 	if (stackInitCompleteFlag == 255)
 	{
 		//turn on led blue if everything was fine
-		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
+		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
 	}
 	return;
 }
@@ -451,7 +451,7 @@ void sendCommand(uint8_t * command, int size)
 	} while (result != 0);
 }
 
-void catchBLE(uint8_t * byte1, uint8_t * byte2)
+void catchBLE(void)
 {
 
 	int result = fetchBleEvent(buffer, 127);
@@ -485,6 +485,11 @@ void catchBLE(uint8_t * byte1, uint8_t * byte2)
 			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 1);
 			gatt_flag = 1;
 		}
+		if ((buffer[1] == ACI_GATT_UPDATE_CHAR_COMPLETE[1]) && checkEventResp(buffer, ACI_GATT_UPDATE_CHAR_COMPLETE, ARRAY_LENGTH(ACI_GATT_UPDATE_CHAR_COMPLETE)) == BLE_OK)
+		{
+			user_disconnect_flag = 1;
+		}
+
 	}
 	else
 	{
@@ -556,7 +561,7 @@ void setConnectable()
 
 	sendCommand(discoverableCommand, sizeof(deviceName) + 5 + sizeof(ACI_GAP_SET_DISCOVERABLE));
 	rxEvent = (uint8_t *)malloc(7);
-	uint32_t timeout = 1000000; // example large count
+	uint32_t timeout = 10000; // example large count
 	while (!dataAvailable && timeout--) ;
 	res = fetchBleEvent(rxEvent, 7);
 	if (res == BLE_OK)
@@ -565,11 +570,19 @@ void setConnectable()
 		if (res == BLE_OK)
 		{
 			//printf("connect\n");
-			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
 			stackInitCompleteFlag |= 0x80;
+			is_discoverable = 1;
+		}
+		else
+		{
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
 		}
 	}
-
+	else
+	{
+		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
+	}
 	free(rxEvent);
 	free(discoverableCommand);
 	free(localname);
@@ -673,7 +686,7 @@ void addCharacteristic(uint8_t * UUID, uint8_t * handleChar, uint8_t * handleSer
 	ADD_CUSTOM_CHAR[28] = isVariable;
 
 
-	if (BLE_command(ADD_CUSTOM_CHAR, sizeof(ADD_CUSTOM_CHAR), ADD_CUSTOM_CHAR_COMPLETE_UART, sizeof(ADD_CUSTOM_CHAR_COMPLETE_UART), 1) == BLE_OK)
+	if (BLE_command(ADD_CUSTOM_CHAR, sizeof(ADD_CUSTOM_CHAR), ADD_CUSTOM_CHAR_COMPLETE, sizeof(ADD_CUSTOM_CHAR_COMPLETE), 1) == BLE_OK)
 	{
 		handleChar[0] = rxEvent[7];
 		handleChar[1] = rxEvent[8];
@@ -699,10 +712,22 @@ void updateCharValue(uint8_t * handleService, uint8_t * handleChar, int offset, 
 	memcpy(commandComplete, UPDATE_CHAR, 10);
 	memcpy(commandComplete + 10, data, size);
 
-	BLE_command(commandComplete, 10 + size, ADD_CUSTOM_CHAR_COMPLETE, sizeof(ADD_CUSTOM_CHAR_COMPLETE), 0);
+	BLE_command(commandComplete, 10 + size, ACI_GATT_UPDATE_CHAR_COMPLETE, sizeof(ACI_GATT_UPDATE_CHAR_COMPLETE), 0);
 	
 	free(commandComplete);
 	free(rxEvent);
+}
+
+void reset_connection_state()
+{
+	connectionHandler[0] = -1;
+	connectionHandler[1] = -1;
+	//setConnectable();
+	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 0);
+	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
+	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 0);
+	gatt_flag = 0;
+	is_discoverable = 0;
 }
 
 /**
@@ -714,7 +739,7 @@ void disconnectBLE()
 	{
 		// should not be -1
 		// printf("reset 1\n");
-		SoftwareReset();
+		//SoftwareReset();
 		return;
 	}
 	uint8_t command[7];
@@ -726,6 +751,7 @@ void disconnectBLE()
 	int i;
 	if (BLE_command(command, sizeof(command), EVENT_DISCONNECT_PENDING, 7, 0) == BLE_OK)
 	{
+		dwt_delay_ms(80);
 		for(i = 0 ; i < 5 ; i++)
 		{
 			result = fetchBleEvent(buffer, 127);
@@ -735,12 +761,7 @@ void disconnectBLE()
 		{
 			if (checkEventResp(buffer, EVENT_DISCONNECTED, 4) == BLE_OK)
 			{
-				connectionHandler[0] = -1;
-				connectionHandler[1] = -1;
-				setConnectable();
-				GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 0);
-				GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
-				gatt_flag = 0;
+				reset_connection_state();
 			}
 		}
 		free(rxEvent);
@@ -748,6 +769,7 @@ void disconnectBLE()
 	if(gatt_flag)
 	{
 		// printf("reset 2\n");
+		is_discoverable = 0;
 		SoftwareReset();
 	} 
 	//printf("%d %d\n",connectionHandler[0],connectionHandler[1]);
@@ -762,7 +784,7 @@ void setDiscoverability(uint8_t mode)
 	if (mode == 1)
 	{
 
-		is_discoverable = 1;
+		//is_discoverable = 1;
 		setConnectable();
 		//printf("discover\n");
 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 0);

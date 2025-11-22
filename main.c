@@ -14,6 +14,7 @@ TIM_Handle_t Timer5_Handle;
 USBD_HandleTypeDef hUsbDeviceFS;
 
 extern int16_t connectionHandler[2];
+extern uint8_t user_disconnect_flag;
 extern I2C_Handle_t g_ds1307I2CHandle;
 extern TIM_HandleTypeDef        htim6;
 extern PCD_HandleTypeDef 		hpcd_USB_OTG_FS;
@@ -31,7 +32,7 @@ volatile uint8_t id_cnt = 0;
 volatile int8_t start_flag = 0;
 volatile uint32_t moving_cnt = DETECT_MOVING_PERIOD;
 int dataAvailable = 0;
-volatile uint8_t is_discoverable = 1;
+volatile uint8_t is_discoverable = 0;
 void SystemClock_Config(void);
 void HAL_EnableCompensationCell(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
@@ -212,7 +213,9 @@ int main(void)
 	dwt_delay_ms(10);
 	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 0);
 	TIM5_init();
-	
+#if ADVERTISE_THEN_NON_DISCOVERABLE
+	setDiscoverability(0);
+#endif
     // /* Manually trigger TIM5 interrupt */
 	//*pNVIC_ISPR1 |= (1 << (IRQ_NO_TIM5 % 32));
 
@@ -223,7 +226,7 @@ int main(void)
 		//printf("%d\n",hUsbDeviceFS.dev_state);
 		if(moving_cnt)
 		{
-			setDiscoverability(0);
+			//setDiscoverability(0);
 			Read_movement();
 		}
 		else
@@ -294,7 +297,16 @@ int main(void)
 							GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
 							moving_cnt = DETECT_MOVING_PERIOD;
 							break;
-						}	
+						}
+						if(user_disconnect_flag)
+						{
+							lost_cnt_sec = 0;
+							move_flag = 0;
+							user_disconnect_flag = 0;
+							reset_connection_state();
+							moving_cnt = DETECT_MOVING_PERIOD;
+							break;
+						}
 					}
 					if(move_flag)
 					{
