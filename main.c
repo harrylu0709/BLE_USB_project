@@ -286,6 +286,7 @@ int main(void)
 							lost_cnt_sec = 0;
 							move_flag = 0;
 							GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
+							GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 0);
 							disconnectBLE();
 							break;
 						}
@@ -295,6 +296,7 @@ int main(void)
 							move_flag = 0;
 							disconnectBLE();
 							GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
+							GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 0);
 							moving_cnt = DETECT_MOVING_PERIOD;
 							break;
 						}

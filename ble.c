@@ -10,8 +10,8 @@
 #include "main.h"
 #include "ble_commands.h"
 
-#define EXTI9_5 23
-
+#define EXTI9_5 			23
+#define ADVERTISING_LED		0
 /*
 01 0c fc 08 00 06 aa 00 00 e1 80 02
 01 8a fc 03 01 00 07
@@ -570,18 +570,24 @@ void setConnectable()
 		if (res == BLE_OK)
 		{
 			//printf("connect\n");
+#if ADVERTISING_LED
 			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
+#endif
 			stackInitCompleteFlag |= 0x80;
 			is_discoverable = 1;
 		}
 		else
 		{
+#if ADVERTISING_LED
 			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
+#endif
 		}
 	}
 	else
 	{
+#if ADVERTISING_LED
 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
+#endif
 	}
 	free(rxEvent);
 	free(discoverableCommand);

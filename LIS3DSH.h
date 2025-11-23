@@ -30,8 +30,8 @@
 #define 	ADD_REG_OUT_Z_L		0x2C
 #define 	ADD_REG_OUT_Z_H		0x2D
 
-#define 	ACC_TH_X			5000
-#define 	ACC_TH_Y			5000
+#define 	ACC_TH_X			3000
+#define 	ACC_TH_Y			3000
 #define 	ACC_TH_Z			18000
 
 void SPI1_GPIOInits(void);
