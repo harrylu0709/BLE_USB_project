@@ -2,22 +2,25 @@
 
 #include <stdio.h>
 #include "main.h"
-#include "usbd_core.h"
-#include "usbd_desc.h"
+#include "usbd_framework.h"
+#include "usb_device.h"
+// #include "usbd_core.h"
+// #include "usbd_desc.h"
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_def.h"
-#include "stm32f4xx_hal_pcd.h"
+#include "logger.h"
+// #include "stm32f4xx_hal.h"
+// #include "stm32f4xx_hal_def.h"
+// #include "stm32f4xx_hal_pcd.h"
 
 TIM_Handle_t Timer5_Handle;
-USBD_HandleTypeDef hUsbDeviceFS;
-
+//USBD_HandleTypeDef hUsbDeviceFS;
+UsbDevice usb_device;
 extern int16_t connectionHandler[2];
 extern uint8_t user_disconnect_flag;
 extern I2C_Handle_t g_ds1307I2CHandle;
-extern TIM_HandleTypeDef        htim6;
-extern PCD_HandleTypeDef 		hpcd_USB_OTG_FS;
+//extern TIM_HandleTypeDef        htim6;
+//extern PCD_HandleTypeDef 		hpcd_USB_OTG_FS;
 /*
  * Embedded Systems Programming on ARM Cortex-M3/M4 Processor lecture 79
 
@@ -30,12 +33,12 @@ uint32_t *pNVIC_ISPR1 = (uint32_t*)0xE000E204;
 volatile uint8_t start_cnt = 0;
 volatile uint8_t id_cnt = 0;
 volatile int8_t start_flag = 0;
-volatile uint32_t moving_cnt = DETECT_MOVING_PERIOD;
+volatile int32_t moving_cnt = DETECT_MOVING_PERIOD;
 int dataAvailable = 0;
 volatile uint8_t is_discoverable = 0;
-void SystemClock_Config(void);
-void HAL_EnableCompensationCell(void);
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+// void SystemClock_Config(void);
+// void HAL_EnableCompensationCell(void);
+// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void update_msg(unsigned char *msg);
 uint8_t gatt_flag = 0;
 int16_t acc_x;
@@ -43,6 +46,8 @@ int16_t acc_y;
 int16_t acc_z;
 int lost_cnt_sec = 0;
 int dwt_cyc_unit = 0;
+uint32_t rx_buffer[16];
+UsbDevice usb_device;
 /*
 	part1
 	https://docs.google.com/document/d/16My2VHtrzub1NycOldHII0mE8Xq-i0LB490brx3gpcc/edit?tab=t.0#heading=h.uu6cpqw6zjbz
@@ -70,9 +75,9 @@ monitor resume
 
 void TIM5_init(void)
 {
-	Timer5_Handle.pTIMx = TIM5;
+	Timer5_Handle.pTIMx = TIM_5;
 
-	if(((RCC->CFGR >> 2) & 0x3) == 0)
+	if(((RCC_->CFGR >> 2) & 0x3) == 0)
 		Timer5_Handle.Prescalar = 7999;
 	else
 		Timer5_Handle.Prescalar = 35999;	
@@ -86,13 +91,13 @@ void dwt_init(void)
     DEMCR |= (1 << 24);     // Enable trace and debug
     DWT_CTRL |= 1;          // Enable the cycle counter
     DWT_CYCCNT = 0;         // Reset the counter
-	dwt_cyc_unit = HAL_RCC_GetHCLKFreq()/1000000;
+	//dwt_cyc_unit = 72;//HAL_RCC_GetHCLKFreq()/1000000;
 }
 
 void dwt_delay_us(uint32_t us) 
 {
 	
-    uint32_t cycles = us * dwt_cyc_unit;  // 16 MHz = 16 cycles per microsecond
+    uint32_t cycles = us * 72;//us * dwt_cyc_unit;  // 16 MHz = 16 cycles per microsecond
     uint32_t start = DWT_CYCCNT;
     while ((DWT_CYCCNT - start) < cycles);
 }
@@ -144,10 +149,10 @@ uint8_t Read_movement(void)
 }
 
 #define OTG_FS_PowerSwitchOn_Pin GPIO_PIN_NO_0
-#define OTG_FS_PowerSwitchOn_GPIO_Port GPIOC
+#define OTG_FS_PowerSwitchOn_GPIO_Port GPIO_C
 
 #define OTG_FS_OverCurrent_Pin GPIO_PIN_NO_5
-#define OTG_FS_OverCurrent_GPIO_Port GPIOD
+#define OTG_FS_OverCurrent_GPIO_Port GPIO_D
 GPIO_Handle_t	USB_FS_GPIO;
 void USB_FS_GPIO_INIT(void)
 {
@@ -170,36 +175,40 @@ void USB_FS_GPIO_INIT(void)
 
 int main(void)
 {
+	
 	initialise_monitor_handles();
+	//return 0;
+	// HAL_Init();
+	// //Set_PLL_Clock();
+	// SystemClock_Config();
+
+	// //USB_FS_GPIO_INIT();
+
+	// if(USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK)
+	// {
+	// 	printf("fail 1\n");
+	// }else printf("ok\n");
 	
-	HAL_Init();
-	//Set_PLL_Clock();
-	SystemClock_Config();
+	// if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
+	// {
+	// 	printf("fail 2\n");
+	// }else printf("ok\n");
 
-	//USB_FS_GPIO_INIT();
+	// if (USBD_CDC_RegisterInterface(&hUsbDeviceFS, &USBD_Interface_fops_FS) != USBD_OK)
+	// {
+	// 	printf("fail 3\n");
+	// }else printf("ok\n");
 
-	if(USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK)
-	{
-		printf("fail 1\n");
-	}else printf("ok\n");
-	
-	if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
-	{
-		printf("fail 2\n");
-	}else printf("ok\n");
+	// if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
+	// {
+	// 	printf("fail 4\n");
+	// }else printf("ok\n");
 
-	if (USBD_CDC_RegisterInterface(&hUsbDeviceFS, &USBD_Interface_fops_FS) != USBD_OK)
-	{
-		printf("fail 3\n");
-	}else printf("ok\n");
-
-	if (USBD_Start(&hUsbDeviceFS) != USBD_OK)
-	{
-		printf("fail 4\n");
-	}else printf("ok\n");
-
-	// printf("%ld\n",HAL_RCC_GetHCLKFreq()); //72000000
+	SystemInit();
 	dwt_init();
+
+	usb_device.ptr_out_buffer = rx_buffer;
+	usbd_initialize(&usb_device);
 	LIS3DSH_init();
 	led_init();
 
@@ -224,14 +233,15 @@ int main(void)
 	while(1)
 	{
 		//printf("%d\n",hUsbDeviceFS.dev_state);
-		if(moving_cnt)
+		if(moving_cnt > 0)
 		{
 			//setDiscoverability(0);
 			Read_movement();
 		}
 		else
 		{
-			if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+			//if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+			if(usb_device.device_state == USB_DEVICE_STATE_CONFIGURED)
 			{
 				leds_set(1);
 				int i = MSG_RATE;
@@ -239,7 +249,7 @@ int main(void)
 				while (i--) 
 				{
 					dwt_delay_ms(1);
-					if(Read_movement() || (hUsbDeviceFS.dev_state == USBD_STATE_SUSPENDED))
+					if(Read_movement() || (usb_device.device_state == USB_DEVICE_STATE_SUSPENDED))
 					{
 						moving_cnt = DETECT_MOVING_PERIOD;
 						lost_cnt_sec = 0;
@@ -247,19 +257,18 @@ int main(void)
 						GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
 						break;
 					}
-    			}
+    			}				
 				if(move_flag)
 				{
 					unsigned char msg_str[] = "freeze for        \n";
 					update_msg(msg_str);
-					// if(CDC_Transmit_FS(msg_str, sizeof(msg_str)) != USBD_OK)
+					// if(cdc_transmit(msg_str, sizeof(msg_str)) != USBD_OK)
 					// {
-
 					// 	moving_cnt = DETECT_MOVING_PERIOD;
 					// 	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0);
 					// 	break;
 					// }
-					CDC_Transmit_FS(msg_str, sizeof(msg_str));
+					cdc_transmit(msg_str, sizeof(msg_str));
 				}
 			}
 			else
@@ -290,7 +299,7 @@ int main(void)
 							disconnectBLE();
 							break;
 						}
-						if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
+						if(usb_device.device_state == USB_DEVICE_STATE_CONFIGURED)
 						{
 							lost_cnt_sec = 0;
 							move_flag = 0;
@@ -360,16 +369,19 @@ void TIM5_IRQHandler(void)
  	// Timer5_Handle.pTIMx->SR &= ~(1<<0);
 }
 
-void TIM6_DAC_IRQHandler(void)
-{
-	HAL_TIM_IRQHandler(&htim6);
-}
+// void TIM6_DAC_IRQHandler(void)
+// {
+// 	HAL_TIM_IRQHandler(&htim6);
+// }
 
 void OTG_FS_IRQHandler(void)
 {
   /* USER CODE BEGIN OTG_FS_IRQn 0 */
   /* USER CODE END OTG_FS_IRQn 0 */
-  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+  //HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+
+  usb_driver.poll();
+  //GPIO_ToggleOutputPin(GPIO_D, LED_GPIO_BLUE);
   /* USER CODE BEGIN OTG_FS_IRQn 1 */
 
   /* USER CODE END OTG_FS_IRQn 1 */
@@ -386,92 +398,92 @@ void I2C_ApplicationEventCallback(I2C_Handle_t *pI2CHandle,uint8_t AppEv)
 	return;
 }
 
-void SystemClock_Config(void)
-{
-//   printf("set clock 1\n");
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+// void SystemClock_Config(void)
+// {
+// //   printf("set clock 1\n");
+//   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+//   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+//   /** Configure the main internal regulator output voltage
+//   */
+//   __HAL_RCC_PWR_CLK_ENABLE();
+//   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 72;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 3;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    //Error_Handler();
-	printf("fail\n");
-  }
-//   printf("set clock 2\n");
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+//   /** Initializes the RCC Oscillators according to the specified parameters
+//   * in the RCC_OscInitTypeDef structure.
+//   */
+//   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+//   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+//   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+//   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+//   RCC_OscInitStruct.PLL.PLLM = 4;
+//   RCC_OscInitStruct.PLL.PLLN = 72;
+//   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+//   RCC_OscInitStruct.PLL.PLLQ = 3;
+//   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//   {
+//     //Error_Handler();
+// 	printf("fail\n");
+//   }
+// //   printf("set clock 2\n");
+//   /** Initializes the CPU, AHB and APB buses clocks
+//   */
+//   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+//                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+//   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+//   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+//   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+//   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != 0x00)
-  {
-    //Error_Handler();
-	printf("fail\n");
-  }
-//   printf("set clock ok\n");
-}
+//   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != 0x00)
+//   {
+//     //Error_Handler();
+// 	printf("fail\n");
+//   }
+// //   printf("set clock ok\n");
+// }
 
-void HAL_EnableCompensationCell(void)
-{
-  *(volatile uint32_t *)CMPCR_CMP_PD_BB = (uint32_t)ENABLE;
-}
-
-
-void HAL_NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
-{
-  uint32_t reg_value;
-  uint32_t PriorityGroupTmp = (PriorityGroup & (uint32_t)0x07UL);             /* only values 0..7 are used          */
-
-  reg_value  =  SCB->AIRCR;                                                   /* read old register configuration    */
-  reg_value &= ~((uint32_t)(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk)); /* clear bits to change               */
-  reg_value  =  (reg_value                                   |
-                ((uint32_t)0x5FAUL << SCB_AIRCR_VECTKEY_Pos) |
-                (PriorityGroupTmp << 8U)                      );              /* Insert write key and priorty group */
-  SCB->AIRCR =  reg_value;
-}
+// void HAL_EnableCompensationCell(void)
+// {
+//   *(volatile uint32_t *)CMPCR_CMP_PD_BB = (uint32_t)ENABLE;
+// }
 
 
-void HAL_MspInit(void)
-{
-  /* USER CODE BEGIN MspInit 0 */
+// void HAL_NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
+// {
+//   uint32_t reg_value;
+//   uint32_t PriorityGroupTmp = (PriorityGroup & (uint32_t)0x07UL);             /* only values 0..7 are used          */
 
-  /* USER CODE END MspInit 0 */
+//   reg_value  =  SCB->AIRCR;                                                   /* read old register configuration    */
+//   reg_value &= ~((uint32_t)(SCB_AIRCR_VECTKEY_Msk | SCB_AIRCR_PRIGROUP_Msk)); /* clear bits to change               */
+//   reg_value  =  (reg_value                                   |
+//                 ((uint32_t)0x5FAUL << SCB_AIRCR_VECTKEY_Pos) |
+//                 (PriorityGroupTmp << 8U)                      );              /* Insert write key and priorty group */
+//   SCB->AIRCR =  reg_value;
+// }
 
-  __HAL_RCC_SYSCFG_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
-}
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
+// void HAL_MspInit(void)
+// {
+//   /* USER CODE BEGIN MspInit 0 */
 
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) 
-  {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
+//   /* USER CODE END MspInit 0 */
 
-  /* USER CODE END Callback 1 */
-}
+//   __HAL_RCC_SYSCFG_CLK_ENABLE();
+//   __HAL_RCC_PWR_CLK_ENABLE();
+// }
+
+// void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+// {
+//   /* USER CODE BEGIN Callback 0 */
+
+//   /* USER CODE END Callback 0 */
+//   if (htim->Instance == TIM6) 
+//   {
+//     HAL_IncTick();
+//   }
+//   /* USER CODE BEGIN Callback 1 */
+
+//   /* USER CODE END Callback 1 */
+// }
 // #endif

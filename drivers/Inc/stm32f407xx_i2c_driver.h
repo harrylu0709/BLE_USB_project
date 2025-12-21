@@ -3,7 +3,7 @@
 
 
 #include <stdio.h>
-#include "stm32f407xx.h"
+#include "stm32f407.h"
 
 
 typedef struct
@@ -59,24 +59,23 @@ typedef struct
 #define I2C_FM_DUTY_2		0 //T low /T high = 2
 #define I2C_FM_DUTY_16_9	1 //T low /T high = 16/9
 
-#define I2C_CR1_PE	0
 
 
 /*
  * I2C related status flags definitions
  */
-#define I2C_FLAG_TXE   		( 1 << I2C_SR1_TXE)
-#define I2C_FLAG_RXNE   	( 1 << I2C_SR1_RXNE)
-#define I2C_FLAG_SB			( 1 << I2C_SR1_SB)
-#define I2C_FLAG_OVR  		( 1 << I2C_SR1_OVR)
-#define I2C_FLAG_AF   		( 1 << I2C_SR1_AF)
-#define I2C_FLAG_ARLO 		( 1 << I2C_SR1_ARLO)
-#define I2C_FLAG_BERR 		( 1 << I2C_SR1_BERR)
-#define I2C_FLAG_STOPF 		( 1 << I2C_SR1_STOPF)
-#define I2C_FLAG_ADD10 		( 1 << I2C_SR1_ADD10)
-#define I2C_FLAG_BTF  		( 1 << I2C_SR1_BTF)
-#define I2C_FLAG_ADDR 		( 1 << I2C_SR1_ADDR)
-#define I2C_FLAG_TIMEOUT 	( 1 << I2C_SR1_TIMEOUT)
+#define I2C_FLAG_TXE   		( 1 << I2C_SR1_TXE_DEF)
+#define I2C_FLAG_RXNE   	( 1 << I2C_SR1_RXNE_DEF)
+#define I2C_FLAG_SB			( 1 << I2C_SR1_SB_DEF)
+#define I2C_FLAG_OVR  		( 1 << I2C_SR1_OVR_DEF)
+#define I2C_FLAG_AF   		( 1 << I2C_SR1_AF_DEF)
+#define I2C_FLAG_ARLO 		( 1 << I2C_SR1_ARLO_DEF)
+#define I2C_FLAG_BERR 		( 1 << I2C_SR1_BERR_DEF)
+#define I2C_FLAG_STOPF 		( 1 << I2C_SR1_STOPF_DEF)
+#define I2C_FLAG_ADD10 		( 1 << I2C_SR1_ADD10_DEF)
+#define I2C_FLAG_BTF  		( 1 << I2C_SR1_BTF_DEF)
+#define I2C_FLAG_ADDR 		( 1 << I2C_SR1_ADDR_DEF)
+#define I2C_FLAG_TIMEOUT 	( 1 << I2C_SR1_TIMEOUT_DEF)
 
 
 void I2C_PeriClockControl(I2C_RegDef_t *pI2Cx, uint8_t EnorDi);

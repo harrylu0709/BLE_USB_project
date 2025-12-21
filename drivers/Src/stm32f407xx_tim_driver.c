@@ -1,16 +1,14 @@
 #include "stm32f407xx_tim_driver.h"
-TIM_HandleTypeDef        htim6;
-extern uint32_t uwTickPrio;
 void TIM_PeriClockControl(TIM_RegDef_t *pTIMx, uint8_t EnorDi)
 {
 
-	if(EnorDi == ENABLE)
+	if(EnorDi == 1)
 	{
-		if(pTIMx == TIM2)
+		if(pTIMx == TIM_2)
 		{
 			TIM2_PCLK_EN();
 		}
-        else if (pTIMx == TIM5)
+        else if (pTIMx == TIM_5)
 		{
 			TIM5_PCLK_EN();
 		}
@@ -27,7 +25,7 @@ void timer_init(TIM_Handle_t *pTIMHandle)
 	//printf("clk=%d\n",RCC_GetPCLK1Value());
 
 	//peripheral clock enable
-	TIM_PeriClockControl(pTIMHandle->pTIMx, ENABLE);
+	TIM_PeriClockControl(pTIMHandle->pTIMx, 1);
 
   	/* fCK_PSC / (PSC[15:0] + 1)
      (16 MHz / (15999+1)) = 1 KHz timer clock speed */
@@ -48,7 +46,7 @@ void timer_init(TIM_Handle_t *pTIMHandle)
 	pTIMHandle->pTIMx->SR &= ~(1<<0);
 
 	/* Enable NVIC Interrupt for Timer */
-	TIM_IRQInterruptConfig(IRQ_NO_TIM5, ENABLE);
+	TIM_IRQInterruptConfig(IRQ_NO_TIM5, 1);
 	TIM_IRQPriorityConfig(IRQ_NO_TIM5, NVIC_IRQ_PRI0);
 
 	/* Finally enable Timer count */
@@ -63,7 +61,7 @@ void timer_reset(TIM_Handle_t *pTIMHandle)
 
 void TIM_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
-	if(EnorDi == ENABLE)
+	if(EnorDi == 1)
 	{
 		if(IRQNumber <= 31)
 		{
@@ -124,7 +122,7 @@ void TIM_IRQHandling(TIM_Handle_t *pTIM_Handle)
 	if(pTIM_Handle->pTIMx->SR & 0x1)
 		pTIM_Handle->pTIMx->SR &= ~(1<<0);
 }
-
+#if 0
 #define __HAL_RCC_TIM6_CLK_ENABLE()   do { \
                                       volatile uint32_t tmpreg = 0x00U; \
                                       SET_BIT(RCC->APB1ENR, RCC_APB1ENR_TIM6EN);\
@@ -662,3 +660,4 @@ void HAL_TIM_IRQHandler(TIM_HandleTypeDef *htim)
     }
   }
 }
+#endif

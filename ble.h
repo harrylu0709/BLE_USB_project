@@ -9,8 +9,8 @@
 #define BLE_H_
 
 //#include "ble_commands.h"
-#include "stm32f407xx.h"
-#define     BLE_GPIO_PORT                       GPIOE
+#include "stm32f407.h"
+#define     BLE_GPIO_PORT                       GPIO_E
 #define     BLE_INT_Pin                         GPIO_PIN_NO_9
 #define     BLE_RST_Pin                         GPIO_PIN_NO_10
 #define     BLE_CS_Pin                          GPIO_PIN_NO_11

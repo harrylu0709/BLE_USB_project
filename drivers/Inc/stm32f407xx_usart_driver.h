@@ -1,6 +1,7 @@
 #ifndef STM32F446X_UART_DRIVER_H_
 #define STM32F446X_UART_DRIVER_H_
-#include "stm32f407xx.h"
+#include "stm32f407.h"
+//#include "stm32f407xx.h"
 
 
 
@@ -99,9 +100,9 @@ typedef struct
 #define USART_BUSY_IN_RX 				1
 #define USART_BUSY_IN_TX 				2
 
-#define USART_FLAG_TXE              ( 1 << USART_SR_TXE)
-#define USART_FLAG_RXNE             ( 1 << USART_SR_RXNE)
-#define USART_FLAG_TC               ( 1 << USART_SR_TC)
+#define USART_FLAG_TXE              ( 1 << USART_SR_TXE_DEF)
+#define USART_FLAG_RXNE             ( 1 << USART_SR_RXNE_DEF)
+#define USART_FLAG_TC               ( 1 << USART_SR_TC_DEF)
 
 #define 	USART_EVENT_TX_CMPLT   0
 #define		USART_EVENT_RX_CMPLT   1

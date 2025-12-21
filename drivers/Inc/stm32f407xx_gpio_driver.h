@@ -8,7 +8,7 @@
 //#ifndef INC_STM32F407XX_GPIO_DRIVER_H_
 //#define INC_STM32F407XX_GPIO_DRIVER_H_
 //
-//#include "stm32f407xx.h"
+//#include "stm32f407.h"
 //
 ////typedef struct
 ////{
@@ -130,7 +130,7 @@
 #define INC_STM32F407XX_GPIO_DRIVER_H_
 
 
-#include "stm32f407xx.h"
+#include "stm32f407.h"
 
 
 
@@ -315,14 +315,14 @@ void GPIO_IRQHandling(uint8_t PinNumber);
 #define GPIO_MODER_MODER0_Msk            (0x3UL << GPIO_MODER_MODER0_Pos)       /*!< 0x00000003 */
 #define GPIO_MODER_MODER0                GPIO_MODER_MODER0_Msk 
 
-#define GPIO_GET_INDEX(__GPIOx__)    (uint8_t)(((__GPIOx__) == (GPIOA))? 0U :\
-                                               ((__GPIOx__) == (GPIOB))? 1U :\
-                                               ((__GPIOx__) == (GPIOC))? 2U :\
-                                               ((__GPIOx__) == (GPIOD))? 3U :\
-                                               ((__GPIOx__) == (GPIOE))? 4U :\
-                                               ((__GPIOx__) == (GPIOF))? 5U :\
-                                               ((__GPIOx__) == (GPIOG))? 6U :\
-                                               ((__GPIOx__) == (GPIOH))? 7U : 8U)
+#define GPIO_GET_INDEX(__GPIOx__)    (uint8_t)(((__GPIOx__) == (GPIO_A))? 0U :\
+                                               ((__GPIOx__) == (GPIO_B))? 1U :\
+                                               ((__GPIOx__) == (GPIO_C))? 2U :\
+                                               ((__GPIOx__) == (GPIO_D))? 3U :\
+                                               ((__GPIOx__) == (GPIO_E))? 4U :\
+                                               ((__GPIOx__) == (GPIO_F))? 5U :\
+                                               ((__GPIOx__) == (GPIO_G))? 6U :\
+                                               ((__GPIOx__) == (GPIO_H))? 7U : 8U)
 
 
 

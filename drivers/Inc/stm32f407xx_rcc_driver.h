@@ -1,14 +1,19 @@
 #ifndef INC_STM32F407XX_RCC_DRIVER_H_
 #define INC_STM32F407XX_RCC_DRIVER_H_
 
-#include "stm32f407xx.h"
-#include "stm32f4xx_hal_def.h"
+#include "stm32f407.h"
+// #include "stm32f4xx_hal_def.h"
+// extern uint32_t SystemCoreClock;
+uint32_t RCC_GetPCLK1Value(void);
+uint32_t RCC_GetPCLK2Value(void);
+uint32_t RCC_GetPLLOutputClock(void);
+
 extern uint32_t SystemCoreClock;
 uint32_t RCC_GetPCLK1Value(void);
 uint32_t RCC_GetPCLK2Value(void);
 uint32_t RCC_GetPLLOutputClock(void);
 
-
+#if 0
 void Set_PLL_Clock(void);
 HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef *RCC_OscInitStruct);
 HAL_StatusTypeDef HAL_RCC_ClockConfig(RCC_ClkInitTypeDef *RCC_ClkInitStruct, uint32_t FLatency);
@@ -264,4 +269,5 @@ uint32_t HAL_RCC_GetPCLK1Freq(void);
 uint32_t NVIC_GetPriorityGrouping(void);
 void NVIC_SetPriority(int IRQn, uint32_t priority);
 uint32_t NVIC_EncodePriority (uint32_t PriorityGroup, uint32_t PreemptPriority, uint32_t SubPriority);
+#endif
 #endif

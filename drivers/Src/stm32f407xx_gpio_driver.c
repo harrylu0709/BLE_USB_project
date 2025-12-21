@@ -10,7 +10,7 @@
 ////Peripheral Clock Setup
 //void GPIO_PeriClockControl(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi)
 //{
-//	if(EnorDi == ENABLE)
+//	if(EnorDi == 1)
 //	{
 //		if(pGPIOx == GPIOA)
 //		{
@@ -106,20 +106,20 @@
 //		if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_FT)
 //		{
 //			//1. configure the FTSR(falling trigger selection register)
-//			EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
-//			EXTI->RTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->RTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 //		}
 //		else if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RT)
 //		{
 //			// configure the RTSR(rising trigger selection register)
-//			EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
-//			EXTI->FTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->FTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 //		}
 //		else if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RFT)
 //		{
 //			// configure the both FTSR	RTSR
-//			EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
-//			EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//			EXTI_->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 //		}
 //		//2. configure the GPIO port selection in SYSCFG_EXTICR
 //
@@ -129,7 +129,7 @@
 //		SYSCFG_PCLK_EN();
 //		SYSCFG->EXTICR[temp1] = portcode << (temp2 * 4);
 //		//3. enable the exti interrupt delivery using IMR(interrupt mask register)
-//		EXTI->IMR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+//		EXTI_->IMR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 //	}
 //	temp = 0;
 //
@@ -291,11 +291,11 @@
 //}
 //void GPIO_IRQHandling(uint8_t PinNumber)
 //{
-//	//clear the EXTI Pending register corresponding to the pin number
-//	if(EXTI->PR & (1 << PinNumber))
+//	//clear the EXTI_ Pending register corresponding to the pin number
+//	if(EXTI_->PR & (1 << PinNumber))
 //	{
 //		//clear
-//		EXTI->PR |= (1 << PinNumber);
+//		EXTI_->PR |= (1 << PinNumber);
 //	}
 //}
 /*
@@ -315,7 +315,7 @@
  * @brief             - This function enables or disables peripheral clock for the given GPIO port
  *
  * @param[in]         - base address of the gpio peripheral
- * @param[in]         - ENABLE or DISABLE macros
+ * @param[in]         - 1 or DISABLE macros
  * @param[in]         -
  *
  * @return            -  none
@@ -325,33 +325,33 @@
  */
 void GPIO_PeriClockControl(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi)
 {
-	if(EnorDi == ENABLE)
+	if(EnorDi == 1)
 	{
-		if(pGPIOx == GPIOA)
+		if(pGPIOx == GPIO_A)
 		{
 			GPIOA_PCLK_EN();
-		}else if (pGPIOx == GPIOB)
+		}else if (pGPIOx == GPIO_B)
 		{
 			GPIOB_PCLK_EN();
-		}else if (pGPIOx == GPIOC)
+		}else if (pGPIOx == GPIO_C)
 		{
 			GPIOC_PCLK_EN();
-		}else if (pGPIOx == GPIOD)
+		}else if (pGPIOx == GPIO_D)
 		{
 			GPIOD_PCLK_EN();
-		}else if (pGPIOx == GPIOE)
+		}else if (pGPIOx == GPIO_E)
 		{
 			GPIOE_PCLK_EN();
-		}else if (pGPIOx == GPIOF)
+		}else if (pGPIOx == GPIO_F)
 		{
 			GPIOF_PCLK_EN();
-		}else if (pGPIOx == GPIOG)
+		}else if (pGPIOx == GPIO_G)
 		{
 			GPIOG_PCLK_EN();
-		}else if (pGPIOx == GPIOH)
+		}else if (pGPIOx == GPIO_H)
 		{
 			GPIOH_PCLK_EN();
-		}else if (pGPIOx == GPIOI)
+		}else if (pGPIOx == GPIO_I)
 		{
 			GPIOI_PCLK_EN();
 		}
@@ -359,39 +359,39 @@ void GPIO_PeriClockControl(GPIO_RegDef_t *pGPIOx, uint8_t EnorDi)
 	else
 	{
 		//TODO
-		if(pGPIOx == GPIOA)
+		if(pGPIOx == GPIO_A)
 		{
 			GPIOA_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOB)
+		else if(pGPIOx == GPIO_B)
 		{
 			GPIOB_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOC)
+		else if(pGPIOx == GPIO_C)
 		{
 			GPIOC_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOD)
+		else if(pGPIOx == GPIO_D)
 		{
 			GPIOD_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOE)
+		else if(pGPIOx == GPIO_E)
 		{
 			GPIOE_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOF)
+		else if(pGPIOx == GPIO_F)
 		{
 			GPIOF_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOG)
+		else if(pGPIOx == GPIO_G)
 		{
 			GPIOG_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOH)
+		else if(pGPIOx == GPIO_H)
 		{
 			GPIOH_PCLK_DI();
 		}
-		else if(pGPIOx == GPIOI)
+		else if(pGPIOx == GPIO_I)
 		{
 			GPIOI_PCLK_DI();
 		}
@@ -422,7 +422,7 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 
 	 //enable the peripheral clock
 
-	 GPIO_PeriClockControl(pGPIOHandle->pGPIOx, ENABLE);
+	 GPIO_PeriClockControl(pGPIOHandle->pGPIOx, 1);
 
 	//1 . configure the mode of gpio pin
 
@@ -439,23 +439,23 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 		if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode ==GPIO_MODE_IT_FT )
 		{
 			//1. configure the FTSR
-			EXTI->FTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->FTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 			//Clear the corresponding RTSR bit
-			EXTI->RTSR &= ~( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->RTSR &= ~( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 
 		}else if (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode ==GPIO_MODE_IT_RT )
 		{
 			//1 . configure the RTSR
-			EXTI->RTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->RTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 			//Clear the corresponding RTSR bit
-			EXTI->FTSR &= ~( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->FTSR &= ~( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 
 		}else if (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RFT )
 		{
 			//1. configure both FTSR and RTSR
-			EXTI->RTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->RTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 			//Clear the corresponding RTSR bit
-			EXTI->FTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			EXTI_->FTSR |= ( 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 		}
 
 		//2. configure the GPIO port selection in SYSCFG_EXTICR
@@ -463,10 +463,10 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 		uint8_t temp2 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber % 4;
 		uint8_t portcode = GPIO_BASEADDR_TO_CODE(pGPIOHandle->pGPIOx);
 		SYSCFG_PCLK_EN();
-		SYSCFG->EXTICR[temp1] = portcode << ( temp2 * 4);
+		SYSCFG_->EXTICR[temp1] = portcode << ( temp2 * 4);
 
 		//3 . enable the exti interrupt delivery using IMR
-		EXTI->IMR |= 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber;
+		EXTI_->IMR |= 1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber;
 	}
 
 	//2. configure the speed
@@ -516,31 +516,31 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
  */
 void GPIO_DeInit(GPIO_RegDef_t *pGPIOx)
 {
-	if(pGPIOx == GPIOA)
+	if(pGPIOx == GPIO_A)
 	{
 		GPIOA_REG_RESET();
-	}else if (pGPIOx == GPIOB)
+	}else if (pGPIOx == GPIO_B)
 	{
 		GPIOB_REG_RESET();
-	}else if (pGPIOx == GPIOC)
+	}else if (pGPIOx == GPIO_C)
 	{
 		GPIOC_REG_RESET();
-	}else if (pGPIOx == GPIOD)
+	}else if (pGPIOx == GPIO_D)
 	{
 		GPIOD_REG_RESET();
-	}else if (pGPIOx == GPIOE)
+	}else if (pGPIOx == GPIO_E)
 	{
 		GPIOE_REG_RESET();
-	}else if (pGPIOx == GPIOF)
+	}else if (pGPIOx == GPIO_F)
 	{
 		GPIOF_REG_RESET();
-	}else if (pGPIOx == GPIOG)
+	}else if (pGPIOx == GPIO_G)
 	{
 		GPIOG_REG_RESET();
-	}else if (pGPIOx == GPIOH)
+	}else if (pGPIOx == GPIO_H)
 	{
 		GPIOH_REG_RESET();
-	}else if (pGPIOx == GPIOI)
+	}else if (pGPIOx == GPIO_I)
 	{
 		GPIOI_REG_RESET();
 	}
@@ -684,7 +684,7 @@ void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber)
 void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 
-	if(EnorDi == ENABLE)
+	if(EnorDi == 1)
 	{
 		if(IRQNumber <= 31)
 		{
@@ -765,10 +765,10 @@ void GPIO_IRQPriorityConfig(uint8_t IRQNumber,uint32_t IRQPriority)
 void GPIO_IRQHandling(uint8_t PinNumber)
 {
 	//clear the exti pr register corresponding to the pin number
-	if(EXTI->PR & ( 1 << PinNumber))
+	if(EXTI_->PR & ( 1 << PinNumber))
 	{
 		//clear
-		EXTI->PR |= ( 1 << PinNumber);
+		EXTI_->PR |= ( 1 << PinNumber);
 	}
 
 }

@@ -26,7 +26,8 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f407xx.h"
+#include "stm32f407.h"
+//#include "stm32f407xx.h"
 //#include "Legacy/stm32_hal_legacy.h"
 #include <stddef.h>
 

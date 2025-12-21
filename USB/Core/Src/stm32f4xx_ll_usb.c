@@ -40,7 +40,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include "stm32f407xx.h"
+#include "stm32f407.h"
+//#include "stm32f407xx.h"
 #include "stm32f4xx_hal_def.h"
 #include "stm32f4xx_ll_usb.h"
 #include "usbd_def.h"

@@ -25,7 +25,7 @@
 // #endif
 
 // /* Includes ------------------------------------------------------------------*/
-// #include "stm32f407xx.h"  /* replace 'stm32xxx' with your HAL driver header filename, ex: stm32f4xx.h */
+// #include "stm32f407.h"  /* replace 'stm32xxx' with your HAL driver header filename, ex: stm32f4xx.h */
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <string.h>
@@ -243,7 +243,8 @@
 #include <stdlib.h>
 #include <string.h>
 //#include "main.h"
-#include "stm32f407xx.h"
+#include "stm32f407.h"
+//#include "stm32f407xx.h"
 //#include "stm32f4xx_hal.h"
 
 /* USER CODE BEGIN INCLUDE */

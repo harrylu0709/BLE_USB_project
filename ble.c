@@ -155,7 +155,7 @@ void ble_gpio_init()
 	GPIO_Init(&BLE);
 
 	GPIO_IRQPriorityConfig(IRQ_NO_EXTI9_5, NVIC_IRQ_PRI0);
-	GPIO_IRQInterruptConfig(IRQ_NO_EXTI9_5, ENABLE);
+	GPIO_IRQInterruptConfig(IRQ_NO_EXTI9_5, 1);
 
 	GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_CS_Pin, 1);
 	GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_RST_Pin, 1);
@@ -165,7 +165,7 @@ void SPI2_GPIOInits(void)
 {
 	GPIO_Handle_t SPIPins;
 
-	SPIPins.pGPIOx = GPIOB;
+	SPIPins.pGPIOx = GPIO_B;
 	SPIPins.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
 	SPIPins.GPIO_PinConfig.GPIO_PinAltFunMode = 5;
 	SPIPins.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
@@ -182,13 +182,13 @@ void SPI2_GPIOInits(void)
 	//SPIPins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU;
 	SPIPins.GPIO_PinConfig.GPIO_PinNumber = SPI2_MISO;
 	GPIO_Init(&SPIPins);
-	// GPIO_WriteToOutputPin(GPIOB, SPI2_MOSI, 1);
-	// GPIO_WriteToOutputPin(GPIOB, SPI2_SCK, 1);
+	// GPIO_WriteToOutputPin(GPIO_B, SPI2_MOSI, 1);
+	// GPIO_WriteToOutputPin(GPIO_B, SPI2_SCK, 1);
 }
 
 void SPI2_Inits(void)
 {
-	SPI2Handle.pSPIx = SPI2;
+	SPI2Handle.pSPIx = SPI_2;
 	SPI2Handle.SPIConfig.SPI_BusConfig = SPI_BUS_CONFIG_FD;
 	SPI2Handle.SPIConfig.SPI_DeviceMode = SPI_DEVICE_MODE_MASTER;
 	SPI2Handle.SPIConfig.SPI_SclkSpeed = SPI_SCLK_SPEED_DIV2;    //generate 8MHz
@@ -206,7 +206,7 @@ void xnucleo_init()
 
 	SPI2_Inits();
 
-	SPI_SSIConfig(SPI2, ENABLE);
+	SPI_SSIConfig(SPI_2, 1);
 
 }
 
@@ -223,7 +223,7 @@ void ble_init()
 	//fetching the reset event
 	rxEvent = (uint8_t *)malloc(EVENT_STARTUP_SIZE);
 	int res;
-	SPI_PeripheralControl(SPI2, ENABLE);
+	SPI_PeripheralControl(SPI_2, 1);
 	while (!dataAvailable);
 	res = fetchBleEvent(rxEvent, EVENT_STARTUP_SIZE);
 	//printf("fetchble\n");
@@ -268,7 +268,7 @@ void ble_init()
 	if (BLE_command(ACI_GAP_SET_AUTH, sizeof(ACI_GAP_SET_AUTH), ACI_GAP_SET_AUTH_RESP, sizeof(ACI_GAP_SET_AUTH_RESP), 0) == BLE_OK)
 	{
 		stackInitCompleteFlag |= 0x10;
-		//HAL_GPIO_WritePin(GPIOD,LD6_Pin,GPIO_PIN_SET);
+		//HAL_GPIO_WritePin(GPIO_D,LD6_Pin,GPIO_PIN_SET);
 	}
 	free(rxEvent);
 
@@ -350,16 +350,16 @@ int fetchBleEvent(uint8_t * container, int size)
 	{
 
 		dwt_delay_ms(5);
-		// SPI_PeripheralControl(SPI2, ENABLE);
+		// SPI_PeripheralControl(SPI_2, 1);
 
-		// //SPI2 in this case, it could change according to the board
+		// //SPI_2 in this case, it could change according to the board
 		// //we send a byte containing a request of reading followed by 4 dummy bytes
 
-		//SPI2 in this case, it could change according to the board
+		//SPI_2 in this case, it could change according to the board
 		//we send a byte containing a request of reading followed by 4 dummy bytes
 		GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_CS_Pin, 0);
 
-		SPI_TransmitReceive(SPI2, master_header, slave_header, 5, 5);
+		SPI_TransmitReceive(SPI_2, master_header, slave_header, 5, 5);
 
 		GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_CS_Pin, 1);
 
@@ -367,7 +367,7 @@ int fetchBleEvent(uint8_t * container, int size)
 
 		GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_CS_Pin, 0);
 
-		SPI_TransmitReceive(SPI2, master_header, slave_header, 5, 5);
+		SPI_TransmitReceive(SPI_2, master_header, slave_header, 5, 5);
 		
 		//let's get the size of data available
 		int dataSize;
@@ -386,7 +386,7 @@ int fetchBleEvent(uint8_t * container, int size)
 			//let's fill the get the bytes availables and insert them into the container variable
 			for (i = 0; i < dataSize; i++)
 			{
-				SPI_TransmitReceive(SPI2, (uint8_t *)&dummy, container + i, 1, 1);
+				SPI_TransmitReceive(SPI_2, (uint8_t *)&dummy, container + i, 1, 1);
 
 			}
 			GPIO_WriteToOutputPin(BLE_GPIO_PORT, BLE_CS_Pin, 1);
@@ -397,7 +397,7 @@ int fetchBleEvent(uint8_t * container, int size)
 			return -1;
 		}
 
-		//let's stop the SPI2
+		//let's stop the SPI_2
 		dataAvailable = 0;
 		return BLE_OK;
 	}
@@ -434,12 +434,12 @@ void sendCommand(uint8_t * command, int size)
 
 		//wait until it is possible to write
 		//while(!dataAvailable);
-		SPI_TransmitReceive(SPI2, master_header, slave_header, 5, 5);
+		SPI_TransmitReceive(SPI_2, master_header, slave_header, 5, 5);
 
 		int bufferSize = (slave_header[2] << 8 | slave_header[1]);
 		if (bufferSize >= size)
 		{
-			SPI_SendData(SPI2, command, size);
+			SPI_SendData(SPI_2, command, size);
 			result = 0;
 		}
 		else

@@ -1,6 +1,6 @@
 #ifndef DS_1307_H
 #define DS_1307_H
-#include "stm32f407xx.h"
+#include "stm32f407.h"
 #define ENABLE_SysTick 0
 #if ENABLE_SysTick
 	#define ENABLE_Timer 0
@@ -14,10 +14,10 @@
 #define 	SPI1_SCK 			GPIO_PIN_NO_5
 #define 	SPI1_MOSI 			GPIO_PIN_NO_7
 #define 	SPI1_MISO 			GPIO_PIN_NO_6
-#define 	SPI1_CS 			GPIO_PIN_NO_3 //GPIOE
+#define 	SPI1_CS 			GPIO_PIN_NO_3 
 
-#define 	MEMS_INT1 			GPIO_PIN_NO_0 //GPIOE
-#define 	MEMS_INT2 			GPIO_PIN_NO_1 //GPIOE
+#define 	MEMS_INT1 			GPIO_PIN_NO_0 
+#define 	MEMS_INT2 			GPIO_PIN_NO_1 
 #define 	WRITE 				(0<<7)
 #define 	READ 				(1<<7)
 

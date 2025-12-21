@@ -677,7 +677,8 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f407xx.h"
+#include "stm32f407.h"
+//#include "stm32f407xx.h"
 #include "stm32f4xx_hal_pcd.h"
 #include "usbd_def.h"
 #include "usbd_core.h"
@@ -775,7 +776,7 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
 
     GPIO_IRQPriorityConfig(OTG_FS_IRQn, NVIC_IRQ_PRI0);
-    GPIO_IRQInterruptConfig(OTG_FS_IRQn, ENABLE);
+    GPIO_IRQInterruptConfig(OTG_FS_IRQn, 1);
   }
 #else
   GPIO_InitTypeDef GPIO_InitStruct = {0};
