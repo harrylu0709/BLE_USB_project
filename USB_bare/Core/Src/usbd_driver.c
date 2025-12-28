@@ -22,6 +22,8 @@ static void initialize_gpio_pins()
 	);
     GPIO_IRQPriorityConfig(OTG_FS_IRQn, 0);
     GPIO_IRQInterruptConfig(OTG_FS_IRQn, ENABLE);
+    // NVIC_SetPriority(OTG_FS_IRQn, 0);
+    // NVIC_EnableIRQ(OTG_FS_IRQn);
 }
 
 static void initialize_core()

@@ -14,5 +14,5 @@
 
 extern void dwt_delay_ms(uint32_t ms);
 extern uint8_t gatt_flag;
-extern int dataAvailable;
+extern volatile uint8_t dataAvailable;
 extern volatile uint8_t is_discoverable;

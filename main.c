@@ -30,11 +30,8 @@ extern I2C_Handle_t g_ds1307I2CHandle;
 //semihosting init function
 extern void initialise_monitor_handles(void);
 uint32_t *pNVIC_ISPR1 = (uint32_t*)0xE000E204;
-volatile uint8_t start_cnt = 0;
-volatile uint8_t id_cnt = 0;
-volatile int8_t start_flag = 0;
 volatile int32_t moving_cnt = DETECT_MOVING_PERIOD;
-int dataAvailable = 0;
+volatile uint8_t dataAvailable = 0;
 volatile uint8_t is_discoverable = 0;
 // void SystemClock_Config(void);
 // void HAL_EnableCompensationCell(void);
