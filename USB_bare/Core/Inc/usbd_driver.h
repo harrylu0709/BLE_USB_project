@@ -18,6 +18,12 @@
 #define PKTSTS_SETUP_CMPLT      4
 #define PKTSTS_SETUP_PACKET     6
 
+#define UNGATE_PHYCLOCK(__HANDLE__) \
+  *(__IO uint32_t *)((uint32_t)((__HANDLE__)) + USB_OTG_PCGCCTL_BASE) &= ~(USB_OTG_PCGCCTL_STOPCLK)
+
+#define GATE_PHYCLOCK(__HANDLE__) \
+  *(__IO uint32_t *)((uint32_t)((__HANDLE__)) + USB_OTG_PCGCCTL_BASE) |= USB_OTG_PCGCCTL_STOPCLK
+
 
 static inline USB_OTG_INEndpointTypeDef* IN_ENDPOINT(uint8_t endpoint_number)
 {
@@ -50,6 +56,8 @@ typedef struct
     void (*read_packet)(void *buffer, uint16_t size);
     void (*write_packet)(uint8_t endpoint_number , const void *buffer, uint16_t size);
     void (*poll)();
+    void (*enable_remote_wakeup)();
+    void (*disable_remote_wakeup)();
 } UsbDriver;
 extern const UsbDriver usb_driver;
 extern UsbEvents usb_events;

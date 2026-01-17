@@ -8,7 +8,6 @@
 #include "logger.h"
 
 //#include "Helpers/math.h"
-#define MOUSE                           0
 #define USB_CDC_SET_LINE_CODING         0x20
 #define USB_CDC_GET_LINE_CODING         0x21
 #define USB_CDC_SET_CONTROL_LINE_STATE  0x22
@@ -17,6 +16,9 @@ static UsbDevice *usbd_handle;
 uint8_t cdc_report[7]; 
 volatile uint8_t set_line_coding_flag = 0;
 volatile uint8_t cdc_connect_flag = 0;
+extern UsbDevice usb_device;
+extern void dwt_delay_ms(uint32_t ms);
+
 
 void usbd_initialize(UsbDevice *usb_device)
 {
@@ -34,20 +36,7 @@ void usbd_poll()
 
 void usbd_configure()
 {
-#if MOUSE
-    //TODO Configure the device (e.g. the endpoints active in this configuration)
-    usb_driver.configure_in_endpoint(
-        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bEndpointAddress & 0x0F),
-        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bmAttributes & 0x03),
-        configuration_descriptor_combination.usb_mouse_endpoint_descriptor.wMaxPacketSize
-    );
 
-    usb_driver.write_packet(
-        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bEndpointAddress & 0x0F),
-        NULL,
-        0
-    );
-#else
     usb_driver.configure_in_endpoint(
         (configuration_descriptor_combination.usb_cdc_in_endpoint_descriptor.bEndpointAddress & 0x0F),
         (configuration_descriptor_combination.usb_cdc_in_endpoint_descriptor.bmAttributes & 0x03),
@@ -77,7 +66,51 @@ void usbd_configure()
         NULL,
         0
     );
+#if MOUSE
+    usb_driver.configure_in_endpoint(
+        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bEndpointAddress & 0x0F),
+        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bmAttributes & 0x03),
+        configuration_descriptor_combination.usb_mouse_endpoint_descriptor.wMaxPacketSize
+    );
+
+    usb_driver.write_packet(
+        (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bEndpointAddress & 0x0F),
+        NULL,
+        0
+    );
 #endif
+#if KEYBOARD
+    usb_driver.configure_in_endpoint(
+        (configuration_descriptor_combination.usb_keyboard_endpoint_descriptor.bEndpointAddress & 0x0F),
+        (configuration_descriptor_combination.usb_keyboard_endpoint_descriptor.bmAttributes & 0x03),
+        configuration_descriptor_combination.usb_keyboard_endpoint_descriptor.wMaxPacketSize
+    );
+
+    usb_driver.write_packet(
+        (configuration_descriptor_combination.usb_keyboard_endpoint_descriptor.bEndpointAddress & 0x0F),
+        NULL,
+        0
+    );
+#endif
+}
+
+void usb_remote_wakeup()
+{
+    if(usbd_handle->dev_remote_wakeup == 1 && usb_device.device_state == USB_DEVICE_STATE_SUSPENDED)
+    {
+        UNGATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
+        // SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
+        write_mouse_report();
+        usb_driver.enable_remote_wakeup();
+        dwt_delay_ms(2);
+        usb_driver.disable_remote_wakeup();
+    }
+    if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) != USB_OTG_DSTS_SUSPSTS)
+    {
+        usb_device.device_state = usb_device.old_device_state;
+    }
+    
+    //write_mouse_report();
 }
 
 static void usb_reset_received_handler()
@@ -100,7 +133,7 @@ static void process_standard_device_request()
             log_info("Standard Get Descriptor request received.");
             const uint8_t descriptor_type = request->wValue >> 8;
             const uint16_t descriptor_length = request->wLength;
-            //const uint8_t descriptor_index = request->wValue & 0xFF;
+            const uint8_t descriptor_index = request->wValue & 0xFF;
 
             switch(descriptor_type)
             {
@@ -118,6 +151,27 @@ static void process_standard_device_request()
                     usbd_handle->ptr_in_buffer = &configuration_descriptor_combination;
                     if(descriptor_length > sizeof(UsbConfigurationDescriptor)) usbd_handle->in_data_size = sizeof(configuration_descriptor_combination);  //??
                     else    usbd_handle->in_data_size = descriptor_length;  //??
+                    log_info("Switching control transfer stage to IN-DATA.");
+                    usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_DATA_IN;
+                    break;
+                case USB_DESCRIPTOR_TYPE_STRING:
+                    log_info("Get STRING Descriptor.");
+                    if(descriptor_index == 0)
+                    {
+                        // usbd_handle->ptr_in_buffer = &language_id_string_descriptor;
+                        // usbd_handle->in_data_size = ARRAY_LENGTH(language_id_string_descriptor);
+                    }
+                    else if(descriptor_index == 1)
+                    {
+                        // usbd_handle->ptr_in_buffer = &manufacturer_string_descriptor;
+                        // usbd_handle->in_data_size = 26;//ARRAY_LENGTH(manufacturer_string_descriptor);
+                    }
+                    else if(descriptor_index == 2)
+                    {
+                        // usbd_handle->ptr_in_buffer = &mouse_string_descriptor;
+                        // usbd_handle->in_data_size = ARRAY_LENGTH(mouse_string_descriptor);
+                    }
+                    usbd_handle->in_data_size = 0;
                     log_info("Switching control transfer stage to IN-DATA.");
                     usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_DATA_IN;
                     break;
@@ -144,17 +198,54 @@ static void process_standard_device_request()
             log_info("Switching control transfer stage to IN-STATUS."); 
             usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
             break;
+        case USB_STANDARD_SET_FEATURE:
+            log_info("Standard Set Feature request received.");
+            if (request->wValue == USB_FEATURE_REMOTE_WAKEUP)
+            {
+                GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_15, 1); //TODO
+                usbd_handle->dev_remote_wakeup = 1;
+            }
+            log_info("Switching control transfer stage to IN-STATUS."); 
+            usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
+            break;
+        case USB_STANDARD_CLEAR_FEATURE:
+            log_info("Standard Clear Feature request received.");
+            if (request->wValue == USB_FEATURE_REMOTE_WAKEUP && usbd_handle->device_state != USB_DEVICE_STATE_SUSPENDED)
+            {
+                GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_15, 0); //TODO
+                usbd_handle->dev_remote_wakeup = 0;
+            }
+            log_info("Switching control transfer stage to IN-STATUS."); 
+            usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
+            break;
+        case USB_STANDARD_SET_INTERFACE:
+            log_info("Standard Set Interface request received.");
+            log_info("Switching control transfer stage to IN-STATUS."); 
+            uint8_t altsetting = request->wValue;
+            usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
+            break;
     }
 }
 
 static void process_class_interface_request()
 {
     UsbRequest const *request = usbd_handle->ptr_out_buffer;
-    
+    uint8_t idle_state;
     switch(request->bRequest)
     {
         case USB_HID_SETIDLE: /* Device should only respond interrupt events */
-            set_line_coding_flag = 0;
+            idle_state = (request->wValue >> 8);
+            log_info("Switching control transfer stage to IN-STATUS."); 
+            usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
+            break;
+        case USB_HID_GETIDLE:
+            log_info("Switching control transfer stage to IN-DATA."); 
+            cdc_report[0] = idle_state;
+            usbd_handle->ptr_in_buffer = &cdc_report;
+            usbd_handle->in_data_size = 1;
+            usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_DATA_IN;
+            break;
+        case USB_HID_SETREPORT:
             log_info("Switching control transfer stage to IN-STATUS."); 
             usbd_handle->control_transfer_stage = USB_CONTROL_STAGE_STATUS_IN;
             break;
@@ -272,12 +363,12 @@ static void usb_polled_handler()
     process_control_transfer_stage();
 }
 #if MOUSE
-static void write_mouse_report()
+void write_mouse_report()
 {
     log_debug("Sending USB HID mouse report");
 
     HidReport hid_report = {
-        .x = 5
+        .x = 1
     };
 
     usb_driver.write_packet(
@@ -310,13 +401,13 @@ static void in_transfer_completed_hander(uint8_t endpoint_number)
 #if MOUSE
     if(endpoint_number == (configuration_descriptor_combination.usb_mouse_endpoint_descriptor.bEndpointAddress & 0x0F))
     {
-        write_mouse_report();
+        //write_mouse_report();
     }
 #endif
-    if(endpoint_number == (configuration_descriptor_combination.usb_cdc_in_endpoint_descriptor.bEndpointAddress & 0x0F))
-    {
-        ;
-    }
+    // if(endpoint_number == (configuration_descriptor_combination.usb_cdc_in_endpoint_descriptor.bEndpointAddress & 0x0F))
+    // {
+    //     ;
+    // }
 }
 
 static void out_transfer_completed_hander(uint8_t endpoint_number)

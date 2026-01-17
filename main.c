@@ -208,6 +208,25 @@ int main(void)
 	usbd_initialize(&usb_device);
 	LIS3DSH_init();
 	led_init();
+	// int cnt = 0;
+	// while(1)
+	// {
+	// 	Check_USB_Bus_State();
+	// 	if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
+	// 	{
+	// 		cnt++;
+	// 		if(cnt>100000)
+	// 		{
+	// 			// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
+	// 			set_sleep();
+	// 		}
+	// 		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
+	// 	}
+	// 	else
+	// 	{
+	// 		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
+	// 	}
+	// }
 
 	xnucleo_init();
 
@@ -229,6 +248,7 @@ int main(void)
 
 	while(1)
 	{
+		// 	Check_USB_Bus_State();
 		//printf("%d\n",hUsbDeviceFS.dev_state);
 		if(moving_cnt > 0)
 		{
@@ -270,6 +290,7 @@ int main(void)
 			}
 			else
 			{
+				//set_sleep();
 				if(!is_discoverable)
 				{
 					setDiscoverability(1);
@@ -384,6 +405,12 @@ void OTG_FS_IRQHandler(void)
   /* USER CODE END OTG_FS_IRQn 1 */
 }
 
+void EXTI0_IRQHandler(void)
+{
+	usb_remote_wakeup();
+	GPIO_IRQHandling(GPIO_PIN_NO_0); //clear the pending event from EXTI line
+}
+
 void EXTI9_5_IRQHandler(void)
 {
 	dataAvailable=1;
@@ -394,7 +421,40 @@ void I2C_ApplicationEventCallback(I2C_Handle_t *pI2CHandle,uint8_t AppEv)
 {
 	return;
 }
+void Check_USB_Bus_State(void)
+{
+    uint8_t d_plus = (GPIO_A->IDR & (1<<12)) ? 1 : 0;
+    uint8_t d_minus = (GPIO_A->IDR & (1<<11)) ? 1 : 0;
 
+    if (d_plus == 1 && d_minus == 0) {
+        //printf("State: J (Idle)\n");
+        GPIO_D->ODR |= ( 1 << 12); /* green */
+        GPIO_D->ODR &= ~( 1 << 14); /* red */
+        GPIO_D->ODR &= ~(1<<13); /* orange */
+        GPIO_D->ODR &= ~(1<<15); /* blue */
+    } 
+    else if (d_plus == 0 && d_minus == 1) {
+        //printf("State: K (Resume)\n");
+        GPIO_D->ODR |= ( 1 << 14); /* red */
+        GPIO_D->ODR &= ~( 1 << 12); /* green */
+        GPIO_D->ODR &= ~(1<<13); /* orange */
+        GPIO_D->ODR &= ~(1<<15); /* blue */
+    } 
+    else if (d_plus == 0 && d_minus == 0) {
+        //printf("State: SE0 (Reset)\n");
+        GPIO_D->ODR |= (1<<13); /* orange */
+        GPIO_D->ODR &= ~(1<<15); /* blue */
+        GPIO_D->ODR &= ~( 1 << 14); /* red */
+        GPIO_D->ODR &= ~( 1 << 12); /* green */
+    }
+    else {
+        //printf("State: SE1 (Illegal/Error)\n");
+        GPIO_D->ODR |=(1<<15); /* blue */
+        GPIO_D->ODR &= ~(1<<13); /* orange */
+        GPIO_D->ODR &= ~( 1 << 14); /* red */
+        GPIO_D->ODR &= ~( 1 << 12); /* green */
+    }
+}
 // void SystemClock_Config(void)
 // {
 // //   printf("set clock 1\n");

@@ -7,12 +7,14 @@
 typedef struct
 {
     UsbDeviceState device_state;
+    UsbDeviceState old_device_state;
     UsbControlTransferStage control_transfer_stage;
     uint8_t configuration_value;
     void *ptr_out_buffer;
     uint32_t out_data_size;
     const void *ptr_in_buffer;
     uint32_t in_data_size;
+    uint8_t dev_remote_wakeup;
 }UsbDevice;
 
 #endif /* USB_DEVICE_H_ */

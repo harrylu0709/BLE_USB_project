@@ -24,6 +24,20 @@ static void initialize_gpio_pins()
     GPIO_IRQInterruptConfig(OTG_FS_IRQn, ENABLE);
     // NVIC_SetPriority(OTG_FS_IRQn, 0);
     // NVIC_EnableIRQ(OTG_FS_IRQn);
+    GPIO_Handle_t GPIOBtn;
+	//this is btn gpio configuration
+	GPIOBtn.pGPIOx = GPIO_A;
+	GPIOBtn.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_0;
+	GPIOBtn.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_IT_FT;
+	GPIOBtn.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	GPIOBtn.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+
+	GPIO_PeriClockControl(GPIO_A, ENABLE);
+
+	GPIO_Init(&GPIOBtn);
+	//IRQ configuartions
+	GPIO_IRQPriorityConfig(IRQ_NO_EXTI0, NVIC_IRQ_PRI15);
+	GPIO_IRQInterruptConfig(IRQ_NO_EXTI0, ENABLE);
 }
 
 static void initialize_core()
@@ -54,7 +68,7 @@ static void initialize_core()
     SET_BIT(USB_OTG_FS->GINTMSK, 
         (USB_OTG_GINTMSK_USBRST | USB_OTG_GINTMSK_ENUMDNEM | USB_OTG_GINTMSK_SOFM |
         USB_OTG_GINTMSK_USBSUSPM | USB_OTG_GINTMSK_WUIM | USB_OTG_GINTMSK_IEPINT | 
-        USB_OTG_GINTMSK_OEPINT | USB_OTG_GINTMSK_RXFLVLM | USB_OTG_GINTSTS_USBSUSP));
+        USB_OTG_GINTMSK_OEPINT | USB_OTG_GINTMSK_RXFLVLM));
 
     //Clear all pending core interrupts 0x4001020
     WRITE_REG(USB_OTG_FS->GINTSTS, 0xFFFFFFFF);
@@ -516,12 +530,52 @@ static void gintsts_handler()
     }
     if(gintsts & USB_OTG_GINTSTS_USBSUSP)
     {
+        usb_device.old_device_state = usb_device.device_state; 
         usb_device.device_state = USB_DEVICE_STATE_SUSPENDED;
         //Clear the interrupt 
         SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_USBSUSP);
     }
+    if(gintsts & USB_OTG_GINTSTS_WKUINT)
+    {
+        //write_mouse_report();
+        CLEAR_BIT(USB_OTG_FS_DEVICE->DCTL, USB_OTG_DCTL_RWUSIG);
+        GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_14, 1); //TODO
+        if(usb_device.device_state == USB_DEVICE_STATE_SUSPENDED)
+        {
+            usb_device.device_state = usb_device.old_device_state;
+        }
+        //Clear the interrupt 
+        SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_WKUINT);
+    }
     usb_events.on_usb_polled();
 }
+
+void set_sleep(void)
+{
+    
+    GATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
+    // SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+    
+    //SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+    //__WFI();
+    
+}
+
+static void usb_enable_remote_wakeup(void)
+{
+  if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
+  {
+    /* active Remote wakeup signalling */
+    SET_BIT(USB_OTG_FS_DEVICE->DCTL, USB_OTG_DCTL_RWUSIG);
+  }
+}
+
+static void usb_disable_remote_wakeup(void)
+{
+  /* Deactive Remote wakeup signalling */
+  CLEAR_BIT(USB_OTG_FS_DEVICE->DCTL, USB_OTG_DCTL_RWUSIG);
+}
+
 
 const UsbDriver usb_driver = 
 {
@@ -536,5 +590,7 @@ const UsbDriver usb_driver =
     .configure_out_endpoint = &configure_out_endpoint,
     .read_packet = &read_packet,
     .write_packet = &write_packet,
-    .poll = &gintsts_handler
+    .poll = &gintsts_handler,
+    .enable_remote_wakeup = &usb_enable_remote_wakeup,
+    .disable_remote_wakeup = &usb_disable_remote_wakeup
 };

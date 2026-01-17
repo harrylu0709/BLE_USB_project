@@ -52,6 +52,11 @@ typedef struct
 }UsbRequest;
 
 
+#define MOUSE                           1
+#define KEYBOARD                        0
+
+#define REPORTID_MOUSE					0x03	// USB report ID for mouse input report
+#define REPORTID_KEYBOARD               0x04    // USB report ID for key board input.
 
 
 /** \defgroup UsbDeviceBitMappedRequestTypeFields
@@ -222,7 +227,16 @@ typedef struct {
 	uint8_t  bSlaveInterface0; 
 } __attribute__((__packed__)) UsbUnionFunctionalDescriptor;
 
-
+typedef struct {
+	uint8_t bLength; 
+	uint8_t bDescriptorType; 
+	uint8_t bFirstInterface;
+	uint8_t bInterfaceCount;
+	uint8_t bFunctionClass; 
+	uint8_t bFunctionSubClass; 
+	uint8_t bFunctionProtocol; 
+	uint8_t iFunction; 
+} __attribute__((__packed__)) UsbInterfaceAssociationDescriptor;
 
 
 /** \anchor USB_ENDPOINT_BMATTRIBUTES_TYPE
