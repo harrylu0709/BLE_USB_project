@@ -205,28 +205,30 @@ int main(void)
 	dwt_init();
 
 	usb_device.ptr_out_buffer = rx_buffer;
+	usb_device.low_power_enable = 1;
+	usb_device.vbus_sensing_enable = 1;
 	usbd_initialize(&usb_device);
 	LIS3DSH_init();
 	led_init();
-	// int cnt = 0;
-	// while(1)
-	// {
-	// 	Check_USB_Bus_State();
-	// 	if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
-	// 	{
-	// 		cnt++;
-	// 		if(cnt>100000)
-	// 		{
-	// 			// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
-	// 			set_sleep();
-	// 		}
-	// 		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
-	// 	}
-	// 	else
-	// 	{
-	// 		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
-	// 	}
-	// }
+	int cnt = 0;
+	while(1)
+	{
+		//Check_USB_Bus_State();
+		if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
+		{
+			cnt++;
+			if(cnt>300000)
+			{
+				// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
+				set_sleep();
+			}
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
+		}
+		else
+		{
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
+		}
+	}
 
 	xnucleo_init();
 
@@ -404,7 +406,31 @@ void OTG_FS_IRQHandler(void)
 
   /* USER CODE END OTG_FS_IRQn 1 */
 }
+void OTG_FS_WKUP_IRQHandler(void)
+{
+  //GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1);
+  //GPIO_D->ODR |= (1 << 13);
+  GPIOD->ODR ^= (1<<13);
+  if (usb_device.low_power_enable)
+  {
+    /* Reset SLEEPDEEP bit of Cortex System Control Register */
+    SCB->SCR &=
+      (uint32_t) ~
+      ((uint32_t) (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
 
+    /* Configures system clock after wake-up from STOP: enable HSE, PLL and
+     * select PLL as system clock source (HSE and PLL are disabled in STOP
+     * mode) */
+    //SystemClock_Config();
+	SystemInit();
+
+    /* ungate PHY clock */
+    //__HAL_PCD_UNGATE_PHYCLOCK((&hpcd));
+	UNGATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
+  }
+  /* Clear EXTI pending Bit */
+  USB_OTG_FS_WAKEUP_EXTI_CLEAR_FLAG();
+}
 void EXTI0_IRQHandler(void)
 {
 	usb_remote_wakeup();

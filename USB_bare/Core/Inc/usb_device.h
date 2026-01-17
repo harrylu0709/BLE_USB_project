@@ -15,6 +15,8 @@ typedef struct
     const void *ptr_in_buffer;
     uint32_t in_data_size;
     uint8_t dev_remote_wakeup;
+    uint8_t low_power_enable;
+    uint8_t vbus_sensing_enable;
 }UsbDevice;
 
 #endif /* USB_DEVICE_H_ */

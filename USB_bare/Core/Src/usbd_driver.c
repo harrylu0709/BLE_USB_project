@@ -20,7 +20,7 @@ static void initialize_gpio_pins()
 		GPIO_MODER_MODER11 | GPIO_MODER_MODER12,
 		_VAL2FLD(GPIO_MODER_MODER11, 2) | _VAL2FLD(GPIO_MODER_MODER12, 2)
 	);
-    GPIO_IRQPriorityConfig(OTG_FS_IRQn, 0);
+    GPIO_IRQPriorityConfig(OTG_FS_IRQn, 1);
     GPIO_IRQInterruptConfig(OTG_FS_IRQn, ENABLE);
     // NVIC_SetPriority(OTG_FS_IRQn, 0);
     // NVIC_EnableIRQ(OTG_FS_IRQn);
@@ -38,6 +38,19 @@ static void initialize_gpio_pins()
 	//IRQ configuartions
 	GPIO_IRQPriorityConfig(IRQ_NO_EXTI0, NVIC_IRQ_PRI15);
 	GPIO_IRQInterruptConfig(IRQ_NO_EXTI0, ENABLE);
+    if (usb_device.low_power_enable == 1)
+    {
+        /* Enable EXTI Line 18 for USB wakeup */
+        USB_OTG_FS_WAKEUP_EXTI_CLEAR_FLAG();
+        USB_OTG_FS_WAKEUP_EXTI_ENABLE_RISING_EDGE();
+        USB_OTG_FS_WAKEUP_EXTI_ENABLE_IT();
+
+        /* Set EXTI Wakeup Interrupt priority */
+        NVIC_SetPriority(OTG_FS_WKUP_IRQn, 0);
+
+        /* Enable EXTI Interrupt */
+        NVIC_EnableIRQ(OTG_FS_WKUP_IRQn);
+    }
 }
 
 static void initialize_core()
@@ -69,6 +82,12 @@ static void initialize_core()
         (USB_OTG_GINTMSK_USBRST | USB_OTG_GINTMSK_ENUMDNEM | USB_OTG_GINTMSK_SOFM |
         USB_OTG_GINTMSK_USBSUSPM | USB_OTG_GINTMSK_WUIM | USB_OTG_GINTMSK_IEPINT | 
         USB_OTG_GINTMSK_OEPINT | USB_OTG_GINTMSK_RXFLVLM));
+    
+    if(usb_device.vbus_sensing_enable)
+    {
+        USB_OTG_FS->GINTMSK |= (USB_OTG_GINTMSK_SRQIM | USB_OTG_GINTMSK_OTGINT);
+    }
+
 
     //Clear all pending core interrupts 0x4001020
     WRITE_REG(USB_OTG_FS->GINTSTS, 0xFFFFFFFF);
@@ -532,6 +551,11 @@ static void gintsts_handler()
     {
         usb_device.old_device_state = usb_device.device_state; 
         usb_device.device_state = USB_DEVICE_STATE_SUSPENDED;
+        if (usb_device.low_power_enable)
+        {
+            /* Set SLEEPDEEP bit and SleepOnExit of Cortex System Control Register. */
+            //SCB->SCR |= (uint32_t)((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+        }
         //Clear the interrupt 
         SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_USBSUSP);
     }
@@ -547,12 +571,34 @@ static void gintsts_handler()
         //Clear the interrupt 
         SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_WKUINT);
     }
+    if(gintsts & USB_OTG_GINTMSK_OTGINT) //USB_OTG_GINTSTS_SRQINT
+    {
+        int RegVal = USB_OTG_FS_GLOBAL->GOTGINT;
+
+        if ((RegVal & USB_OTG_GOTGINT_SEDET) == USB_OTG_GOTGINT_SEDET)
+        {
+            usb_device.device_state = USB_DEVICE_STATE_DEFAULT;
+        }
+        USB_OTG_FS_GLOBAL->GOTGINT |= RegVal;
+        
+        //Clear the interrupt 
+        SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTMSK_OTGINT);
+    }
+    if(gintsts & USB_OTG_GINTSTS_SRQINT)
+    {
+        //Clear the interrupt 
+        SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_SRQINT);
+    }
     usb_events.on_usb_polled();
 }
 
 void set_sleep(void)
 {
-    
+    if (usb_device.low_power_enable)
+    {
+        /* Set SLEEPDEEP bit and SleepOnExit of Cortex System Control Register. */
+        SCB->SCR |= (uint32_t)((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+    }
     GATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
     // SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
     

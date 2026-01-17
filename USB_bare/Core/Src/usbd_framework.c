@@ -98,6 +98,14 @@ void usb_remote_wakeup()
 {
     if(usbd_handle->dev_remote_wakeup == 1 && usb_device.device_state == USB_DEVICE_STATE_SUSPENDED)
     {
+        if (usb_device.low_power_enable)
+        {
+            /* Reset SLEEPDEEP bit of Cortex System Control Register */
+            SCB->SCR &=(uint32_t) ~((uint32_t) (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+
+            //SystemClockConfig_STOP();
+            SystemInit();
+        }
         UNGATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
         // SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
         write_mouse_report();
