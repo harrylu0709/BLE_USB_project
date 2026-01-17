@@ -207,28 +207,29 @@ int main(void)
 	usb_device.ptr_out_buffer = rx_buffer;
 	usb_device.low_power_enable = 1;
 	usb_device.vbus_sensing_enable = 1;
-	usbd_initialize(&usb_device);
+	
 	LIS3DSH_init();
 	led_init();
+	usbd_initialize(&usb_device);
 	int cnt = 0;
-	while(1)
-	{
-		//Check_USB_Bus_State();
-		if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
-		{
-			cnt++;
-			if(cnt>300000)
-			{
-				// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
-				set_sleep();
-			}
-			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
-		}
-		else
-		{
-			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
-		}
-	}
+	// while(1)
+	// {
+	// 	//Check_USB_Bus_State();
+	// 	if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
+	// 	{
+	// 		cnt++;
+	// 		if(cnt>300000)
+	// 		{
+	// 			// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
+	// 			//set_sleep();
+	// 		}
+	// 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
+	// 	}
+	// 	else
+	// 	{
+	// 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
+	// 	}
+	// }
 
 	xnucleo_init();
 
@@ -414,9 +415,7 @@ void OTG_FS_WKUP_IRQHandler(void)
   if (usb_device.low_power_enable)
   {
     /* Reset SLEEPDEEP bit of Cortex System Control Register */
-    SCB->SCR &=
-      (uint32_t) ~
-      ((uint32_t) (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+    SCB->SCR &= ~((uint32_t) (SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
 
     /* Configures system clock after wake-up from STOP: enable HSE, PLL and
      * select PLL as system clock source (HSE and PLL are disabled in STOP

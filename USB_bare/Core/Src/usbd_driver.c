@@ -551,10 +551,11 @@ static void gintsts_handler()
     {
         usb_device.old_device_state = usb_device.device_state; 
         usb_device.device_state = USB_DEVICE_STATE_SUSPENDED;
+        GATE_PHYCLOCK(USB_OTG_FS_GLOBAL);
         if (usb_device.low_power_enable)
         {
             /* Set SLEEPDEEP bit and SleepOnExit of Cortex System Control Register. */
-            //SCB->SCR |= (uint32_t)((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
+            SCB->SCR |= (uint32_t)((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
         }
         //Clear the interrupt 
         SET_BIT(USB_OTG_FS_GLOBAL->GINTSTS, USB_OTG_GINTSTS_USBSUSP);
