@@ -110,7 +110,13 @@ void usb_remote_wakeup()
         // SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
         write_mouse_report();
         usb_driver.enable_remote_wakeup();
+#if GPIO_J_K_STATE
+        Check_USB_Bus_State();
         dwt_delay_ms(2);
+        Check_USB_Bus_State();
+#else
+        dwt_delay_ms(2);
+#endif
         usb_driver.disable_remote_wakeup();
     }
     if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) != USB_OTG_DSTS_SUSPSTS)

@@ -211,26 +211,27 @@ int main(void)
 	LIS3DSH_init();
 	led_init();
 	usbd_initialize(&usb_device);
+#if GPIO_J_K_STATE
 	int cnt = 0;
-	// while(1)
-	// {
-	// 	//Check_USB_Bus_State();
-	// 	if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
-	// 	{
-	// 		cnt++;
-	// 		if(cnt>300000)
-	// 		{
-	// 			// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
-	// 			//set_sleep();
-	// 		}
-	// 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
-	// 	}
-	// 	else
-	// 	{
-	// 		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
-	// 	}
-	// }
-
+	while(1)
+	{
+		Check_USB_Bus_State();
+		if((USB_OTG_FS_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
+		{
+			cnt++;
+			if(cnt>300000)
+			{
+				// GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1); //TODO
+				//set_sleep();
+			}
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 1);//TODO
+		}
+		else
+		{
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_GREEN, 0); //TODO
+		}
+	}
+#endif
 	xnucleo_init();
 
 	GPIO_WriteToOutputPin(BLE_GPIO_PORT,BLE_RST_Pin,GPIO_PIN_RESET);
@@ -412,6 +413,9 @@ void OTG_FS_WKUP_IRQHandler(void)
   //GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1);
   //GPIO_D->ODR |= (1 << 13);
   GPIOD->ODR ^= (1<<13);
+#if GPIO_J_K_STATE
+  GPIO_WriteToOutputPin(GPIO_D, 0, 0);
+#endif
   if (usb_device.low_power_enable)
   {
     /* Reset SLEEPDEEP bit of Cortex System Control Register */
@@ -429,11 +433,20 @@ void OTG_FS_WKUP_IRQHandler(void)
   }
   /* Clear EXTI pending Bit */
   USB_OTG_FS_WAKEUP_EXTI_CLEAR_FLAG();
+#if GPIO_J_K_STATE
+  GPIO_WriteToOutputPin(GPIO_D, 0, 1);
+#endif
 }
 void EXTI0_IRQHandler(void)
 {
+#if GPIO_J_K_STATE
+	GPIO_WriteToOutputPin(GPIO_D, 2, 0);
+#endif
 	usb_remote_wakeup();
 	GPIO_IRQHandling(GPIO_PIN_NO_0); //clear the pending event from EXTI line
+#if GPIO_J_K_STATE	
+	GPIO_WriteToOutputPin(GPIO_D, 2, 1);
+#endif
 }
 
 void EXTI9_5_IRQHandler(void)
@@ -453,31 +466,23 @@ void Check_USB_Bus_State(void)
 
     if (d_plus == 1 && d_minus == 0) {
         //printf("State: J (Idle)\n");
-        GPIO_D->ODR |= ( 1 << 12); /* green */
-        GPIO_D->ODR &= ~( 1 << 14); /* red */
-        GPIO_D->ODR &= ~(1<<13); /* orange */
-        GPIO_D->ODR &= ~(1<<15); /* blue */
+		GPIO_WriteToOutputPin(GPIO_C, 7, 1);
+		GPIO_WriteToOutputPin(GPIO_C, 9, 0);
     } 
     else if (d_plus == 0 && d_minus == 1) {
         //printf("State: K (Resume)\n");
-        GPIO_D->ODR |= ( 1 << 14); /* red */
-        GPIO_D->ODR &= ~( 1 << 12); /* green */
-        GPIO_D->ODR &= ~(1<<13); /* orange */
-        GPIO_D->ODR &= ~(1<<15); /* blue */
+		GPIO_WriteToOutputPin(GPIO_C, 7, 0);
+		GPIO_WriteToOutputPin(GPIO_C, 9, 1);
     } 
     else if (d_plus == 0 && d_minus == 0) {
         //printf("State: SE0 (Reset)\n");
-        GPIO_D->ODR |= (1<<13); /* orange */
-        GPIO_D->ODR &= ~(1<<15); /* blue */
-        GPIO_D->ODR &= ~( 1 << 14); /* red */
-        GPIO_D->ODR &= ~( 1 << 12); /* green */
+		GPIO_WriteToOutputPin(GPIO_C, 7, 0);
+		GPIO_WriteToOutputPin(GPIO_C, 9, 0);
     }
     else {
         //printf("State: SE1 (Illegal/Error)\n");
-        GPIO_D->ODR |=(1<<15); /* blue */
-        GPIO_D->ODR &= ~(1<<13); /* orange */
-        GPIO_D->ODR &= ~( 1 << 14); /* red */
-        GPIO_D->ODR &= ~( 1 << 12); /* green */
+		GPIO_WriteToOutputPin(GPIO_C, 7, 1);
+		GPIO_WriteToOutputPin(GPIO_C, 9, 1);
     }
 }
 // void SystemClock_Config(void)

@@ -3,7 +3,7 @@
 
 #include "usb_standards.h"
 #include <stdint.h>
-
+#define GPIO_J_K_STATE  0
 typedef struct
 {
     UsbDeviceState device_state;

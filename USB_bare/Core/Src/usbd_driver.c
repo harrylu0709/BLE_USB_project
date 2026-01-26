@@ -51,6 +51,34 @@ static void initialize_gpio_pins()
         /* Enable EXTI Interrupt */
         NVIC_EnableIRQ(OTG_FS_WKUP_IRQn);
     }
+#if GPIO_J_K_STATE
+    GPIO_Handle_t LA_DP_DM;
+	LA_DP_DM.pGPIOx = GPIO_C;
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinNumber = 7;
+	GPIO_Init(&LA_DP_DM);
+
+	LA_DP_DM.GPIO_PinConfig.GPIO_PinNumber = 9;
+	GPIO_Init(&LA_DP_DM);
+
+    GPIO_Handle_t LA_d2d4;
+	LA_d2d4.pGPIOx = GPIO_D;
+	LA_d2d4.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_OUT;
+	LA_d2d4.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+	LA_d2d4.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
+	LA_d2d4.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+	LA_d2d4.GPIO_PinConfig.GPIO_PinNumber = 2;
+	GPIO_Init(&LA_d2d4);
+
+    GPIO_WriteToOutputPin(GPIO_D, 2, 1);
+	LA_d2d4.GPIO_PinConfig.GPIO_PinNumber = 0;
+	GPIO_Init(&LA_d2d4);
+
+    GPIO_WriteToOutputPin(GPIO_D, 0, 1);
+#endif
 }
 
 static void initialize_core()
