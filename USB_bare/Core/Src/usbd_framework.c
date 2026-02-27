@@ -216,7 +216,9 @@ static void process_standard_device_request()
             log_info("Standard Set Feature request received.");
             if (request->wValue == USB_FEATURE_REMOTE_WAKEUP)
             {
+#if LED_REMOTE_WAKEUP
                 GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_15, 1); //TODO
+#endif
                 usbd_handle->dev_remote_wakeup = 1;
             }
             log_info("Switching control transfer stage to IN-STATUS."); 
@@ -226,7 +228,9 @@ static void process_standard_device_request()
             log_info("Standard Clear Feature request received.");
             if (request->wValue == USB_FEATURE_REMOTE_WAKEUP && usbd_handle->device_state != USB_DEVICE_STATE_SUSPENDED)
             {
+#if LED_REMOTE_WAKEUP
                 GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_15, 0); //TODO
+#endif                
                 usbd_handle->dev_remote_wakeup = 0;
             }
             log_info("Switching control transfer stage to IN-STATUS."); 

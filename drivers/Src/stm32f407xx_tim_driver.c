@@ -47,7 +47,7 @@ void timer_init(TIM_Handle_t *pTIMHandle)
 
 	/* Enable NVIC Interrupt for Timer */
 	TIM_IRQInterruptConfig(IRQ_NO_TIM5, 1);
-	TIM_IRQPriorityConfig(IRQ_NO_TIM5, NVIC_IRQ_PRI0);
+	TIM_IRQPriorityConfig(IRQ_NO_TIM5, NVIC_IRQ_PRI1);
 
 	/* Finally enable Timer count */
 	pTIMHandle->pTIMx->CR1 |= 0x1;

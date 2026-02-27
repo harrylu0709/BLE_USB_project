@@ -314,7 +314,6 @@ void ble_init()
 		//turn on led blue if everything was fine
 		//GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
 	}
-	return;
 }
 
 void standbyBle()
@@ -535,7 +534,7 @@ f 0 2 0 0
 */
 
 }
-
+#if 0
 void setConnectable()
 {
 	uint8_t * rxEvent;
@@ -594,7 +593,57 @@ void setConnectable()
 	free(localname);
 	dwt_delay_ms(10);
 }
+#else
+uint8_t rxEvent_local[7];
+void setConnectable()
+{
+	//Start advertising
+	int res;
+	uint8_t localname[sizeof(deviceName) + 5]; //carattere di terminazione+listauid+slavetemp
+	memset(localname, 0, sizeof(deviceName) + 5);
+	memcpy(localname, deviceName, sizeof(deviceName));
 
+	ACI_GAP_SET_DISCOVERABLE[11] = sizeof(deviceName) + 1;
+	ACI_GAP_SET_DISCOVERABLE[3] = sizeof(deviceName) + 5 + sizeof(ACI_GAP_SET_DISCOVERABLE) - 4;
+
+	uint8_t discoverableCommand[sizeof(ACI_GAP_SET_DISCOVERABLE) + sizeof(deviceName) + 5];
+	memcpy(discoverableCommand, ACI_GAP_SET_DISCOVERABLE, sizeof(ACI_GAP_SET_DISCOVERABLE));
+	memcpy(discoverableCommand + sizeof(ACI_GAP_SET_DISCOVERABLE), localname, sizeof(deviceName) + 5);
+
+	sendCommand(discoverableCommand, sizeof(deviceName) + 5 + sizeof(ACI_GAP_SET_DISCOVERABLE));
+	uint32_t timeout = 10000; // example large count
+	//dwt_delay_ms(50);
+	while (!dataAvailable && timeout--) ;
+	//if(dataAvailable) GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 1);
+	res = fetchBleEvent(rxEvent_local, 7);
+	if (res == BLE_OK)
+	{
+		res = checkEventResp(rxEvent_local, ACI_GAP_SET_DISCOVERABLE_COMPLETE, 7);
+		if (res == BLE_OK)
+		{
+			//printf("connect\n");
+#if ADVERTISING_LED
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 1);
+#endif
+			stackInitCompleteFlag |= 0x80;
+			is_discoverable = 1;
+		}
+		else
+		{
+#if ADVERTISING_LED
+			GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
+#endif
+		}
+	}
+	else
+	{
+#if ADVERTISING_LED
+		GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_RED, 1);
+#endif
+	}
+	dwt_delay_ms(10);
+}
+#endif
 /**
  * @brief Sends a BLE command and processes the response event.
  *

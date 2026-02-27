@@ -592,7 +592,9 @@ static void gintsts_handler()
     {
         //write_mouse_report();
         CLEAR_BIT(USB_OTG_FS_DEVICE->DCTL, USB_OTG_DCTL_RWUSIG);
+#if LED_REMOTE_WAKEUP
         GPIO_WriteToOutputPin(GPIO_D, GPIO_PIN_NO_14, 1); //TODO
+#endif
         if(usb_device.device_state == USB_DEVICE_STATE_SUSPENDED)
         {
             usb_device.device_state = usb_device.old_device_state;

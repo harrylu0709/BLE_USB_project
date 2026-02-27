@@ -241,14 +241,14 @@ int main(void)
 	ble_init();
 	dwt_delay_ms(10);
 	GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_BLUE, 0);
+	// setConnectable();
+	// while(1);
 	TIM5_init();
 #if ADVERTISE_THEN_NON_DISCOVERABLE
 	setDiscoverability(0);
 #endif
     // /* Manually trigger TIM5 interrupt */
 	//*pNVIC_ISPR1 |= (1 << (IRQ_NO_TIM5 % 32));
-
-	uint8_t nonDiscoverable = 0;
 
 	while(1)
 	{
@@ -300,7 +300,8 @@ int main(void)
 					setDiscoverability(1);
 					leds_set(1);
 				}	
-				if(!nonDiscoverable && GPIO_ReadFromInputPin(BLE_GPIO_PORT, BLE_INT_Pin))
+
+				if(is_discoverable && GPIO_ReadFromInputPin(BLE_GPIO_PORT, BLE_INT_Pin))
 				{
 					catchBLE();
 				}
@@ -411,8 +412,9 @@ void OTG_FS_IRQHandler(void)
 void OTG_FS_WKUP_IRQHandler(void)
 {
   //GPIO_WriteToOutputPin(GPIO_D, LED_GPIO_ORANGE, 1);
-  //GPIO_D->ODR |= (1 << 13);
-  GPIOD->ODR ^= (1<<13);
+#if LED_REMOTE_WAKEUP
+  GPIO_D->ODR |= (1 << 13);
+#endif
 #if GPIO_J_K_STATE
   GPIO_WriteToOutputPin(GPIO_D, 0, 0);
 #endif

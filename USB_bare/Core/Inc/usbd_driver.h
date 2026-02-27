@@ -89,4 +89,5 @@ extern UsbEvents usb_events;
 // static void enumdone_handler();
 // static void rxflvl_handler();
 // static void gintsts_handler();
+#define LED_REMOTE_WAKEUP 0
 #endif /* USBD_DRIVER_H_ */
