@@ -611,7 +611,7 @@ void setConnectable()
 	memcpy(discoverableCommand + sizeof(ACI_GAP_SET_DISCOVERABLE), localname, sizeof(deviceName) + 5);
 
 	sendCommand(discoverableCommand, sizeof(deviceName) + 5 + sizeof(ACI_GAP_SET_DISCOVERABLE));
-	uint32_t timeout = 10000; // example large count
+	uint32_t timeout = 1000; // example large count
 	//dwt_delay_ms(50);
 	while (!dataAvailable && timeout--) ;
 	//if(dataAvailable) GPIO_WriteToOutputPin(LED_GPIO_PORT, LED_GPIO_ORANGE, 1);

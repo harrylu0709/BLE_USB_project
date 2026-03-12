@@ -205,7 +205,7 @@ int main(void)
 	dwt_init();
 
 	usb_device.ptr_out_buffer = rx_buffer;
-	usb_device.low_power_enable = 1;
+	usb_device.low_power_enable = 0;
 	usb_device.vbus_sensing_enable = 1;
 	
 	LIS3DSH_init();
@@ -297,7 +297,13 @@ int main(void)
 				//set_sleep();
 				if(!is_discoverable)
 				{
-					setDiscoverability(1);
+					uint32_t timeout = 500; 
+					//setDiscoverability(1);
+					while(!is_discoverable && timeout--)
+					{
+						setConnectable();
+					}
+					
 					leds_set(1);
 				}	
 
