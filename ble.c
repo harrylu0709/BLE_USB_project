@@ -751,7 +751,7 @@ void addCharacteristic(uint8_t * UUID, uint8_t * handleChar, uint8_t * handleSer
 		//printf("fail\n");
 	free(rxEvent);
 }
-
+uint8_t commandComplete[60];
 void updateCharValue(uint8_t * handleService, uint8_t * handleChar, int offset, int size, uint8_t * data)
 {
 	UPDATE_CHAR[3] = size + 6;
@@ -762,14 +762,14 @@ void updateCharValue(uint8_t * handleService, uint8_t * handleChar, int offset, 
 	UPDATE_CHAR[8] = offset;
 	UPDATE_CHAR[9] = size;
 
-	uint8_t * commandComplete;
-	commandComplete = (uint8_t *)malloc(10 + size);
+	// uint8_t * commandComplete;
+	// commandComplete = (uint8_t *)malloc(10 + size);
 	memcpy(commandComplete, UPDATE_CHAR, 10);
 	memcpy(commandComplete + 10, data, size);
 
 	BLE_command(commandComplete, 10 + size, ACI_GATT_UPDATE_CHAR_COMPLETE, sizeof(ACI_GATT_UPDATE_CHAR_COMPLETE), 0);
 	
-	free(commandComplete);
+	//free(commandComplete);
 	free(rxEvent);
 }
 

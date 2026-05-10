@@ -261,10 +261,10 @@ int main(void)
 		}
 		else
 		{
+			leds_set(1);
 			//if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
 			if(usb_device.device_state == USB_DEVICE_STATE_CONFIGURED)
 			{
-				leds_set(1);
 				int i = MSG_RATE;
 				int move_flag = 1;				
 				while (i--) 
@@ -281,8 +281,9 @@ int main(void)
     			}				
 				if(move_flag)
 				{
-					unsigned char msg_str[] = "freeze for        \n";
+					char msg_str[30]= "freeze for ";
 					update_msg(msg_str);
+					strcat(msg_str,"\n");
 					// if(cdc_transmit(msg_str, sizeof(msg_str)) != USBD_OK)
 					// {
 					// 	moving_cnt = DETECT_MOVING_PERIOD;
@@ -303,8 +304,6 @@ int main(void)
 					{
 						setConnectable();
 					}
-					
-					leds_set(1);
 				}	
 
 				if(is_discoverable && GPIO_ReadFromInputPin(BLE_GPIO_PORT, BLE_INT_Pin))
@@ -350,9 +349,9 @@ int main(void)
 					}
 					if(move_flag)
 					{
-						unsigned char msg_str[] = "freeze for        ";
+						char msg_str[30]= "freeze for ";
 						update_msg(msg_str);
-						if(gatt_flag)	updateCharValue(NORDIC_UART_SERVICE_HANDLE, WRITE_CHAR_HANDLE, 0, sizeof(msg_str), msg_str);
+						if(gatt_flag)	updateCharValue(NORDIC_UART_SERVICE_HANDLE, WRITE_CHAR_HANDLE, 0, strlen(msg_str), msg_str);
 					}
 				}
 			}
@@ -366,25 +365,10 @@ int main(void)
 void update_msg(unsigned char *msg)
 {
 	lost_cnt_sec += (MSG_RATE/1000);
-
-	if(lost_cnt_sec >= 100)
-	{
-		msg[11] = (lost_cnt_sec / 100) +'0';
-		msg[12] = (lost_cnt_sec / 10) % 10 +'0';
-		msg[13] = (lost_cnt_sec % 10)+'0';
-		memcpy(msg + 14, " sec", 4);
-	}
-	else if(lost_cnt_sec >=10)
-	{
-		msg[11] = (lost_cnt_sec / 10) % 10 +'0';
-		msg[12] = (lost_cnt_sec % 10)+'0';
-		memcpy(msg + 13, " sec", 4);
-	}
-	else
-	{
-		msg[11] = (lost_cnt_sec % 10)+'0';
-		memcpy(msg + 12, " sec", 4);
-	}
+	char str[4];
+	snprintf(str,4,"%d",lost_cnt_sec);
+	strcat(msg, str);
+	strcat(msg," sec");
 }
 
 void TIM5_IRQHandler(void)
