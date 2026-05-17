@@ -9,6 +9,8 @@
 #include "usbd_cdc.h"
 #include "usbd_cdc_if.h"
 #include "logger.h"
+#include "FreeRTOS.h"
+#include "task.h"
 // #include "stm32f4xx_hal.h"
 // #include "stm32f4xx_hal_def.h"
 // #include "stm32f4xx_hal_pcd.h"
@@ -28,7 +30,7 @@ extern I2C_Handle_t g_ds1307I2CHandle;
 */
 
 //semihosting init function
-extern void initialise_monitor_handles(void);
+extern void initialise_monitor_handles(void); //Use semihosting by excluding ThirdParty/SEGGER/SEGGER/Syscalls in Makefile
 uint32_t *pNVIC_ISPR1 = (uint32_t*)0xE000E204;
 volatile int32_t moving_cnt = DETECT_MOVING_PERIOD;
 volatile uint8_t dataAvailable = 0;
@@ -37,6 +39,9 @@ volatile uint8_t is_discoverable = 0;
 // void HAL_EnableCompensationCell(void);
 // void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void update_msg(unsigned char *msg);
+static void led_green_handler(void* parameters);
+static void led_red_handler(void* parameters);
+extern void SEGGER_UART_init(uint32_t);
 uint8_t gatt_flag = 0;
 int16_t acc_x;
 int16_t acc_y;
@@ -94,7 +99,7 @@ void dwt_init(void)
 void dwt_delay_us(uint32_t us) 
 {
 	
-    uint32_t cycles = us * 72;//us * dwt_cyc_unit;  // 16 MHz = 16 cycles per microsecond
+    uint32_t cycles = us * 168;//us * dwt_cyc_unit;  // 16 MHz = 16 cycles per microsecond
     uint32_t start = DWT_CYCCNT;
     while ((DWT_CYCCNT - start) < cycles);
 }
@@ -169,12 +174,48 @@ void USB_FS_GPIO_INIT(void)
     USB_FS_GPIO.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_NO_PUPD;
 	GPIO_Init(&USB_FS_GPIO);
 }
+USART_Handle_t usart2_handle;
+void USART2_GPIOInit(void)
+{
+	GPIO_Handle_t USART2Pins;
+
+    USART2Pins.pGPIOx = GPIO_A;
+    USART2Pins.GPIO_PinConfig.GPIO_PinMode = GPIO_MODE_ALTFN;
+    USART2Pins.GPIO_PinConfig.GPIO_PinOPType = GPIO_OP_TYPE_PP;
+    USART2Pins.GPIO_PinConfig.GPIO_PinPuPdControl = GPIO_PIN_PU;
+    USART2Pins.GPIO_PinConfig.GPIO_PinAltFunMode = 7;
+    USART2Pins.GPIO_PinConfig.GPIO_PinSpeed = GPIO_SPEED_FAST;
+
+    //TX
+    USART2Pins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_2;
+    GPIO_Init(&USART2Pins);
+
+    //RX
+    USART2Pins.GPIO_PinConfig.GPIO_PinNumber = GPIO_PIN_NO_3;
+    GPIO_Init(&USART2Pins);
+}
+void USART2_Init(void)
+{
+    usart2_handle.pUSARTx = USART_2;
+    usart2_handle.USART_Config.USART_Baud = USART_STD_BAUD_115200;
+    usart2_handle.USART_Config.USART_HWFlowControl = USART_HW_FLOW_CTRL_NONE;
+    usart2_handle.USART_Config.USART_Mode = USART_MODE_ONLY_TX;//USART_MODE_ONLY_RX;
+    usart2_handle.USART_Config.USART_NoOfStopBits = USART_STOPBITS_1;
+    usart2_handle.USART_Config.USART_ParityControl = USART_PARITY_DISABLE;
+    USART_Init(&usart2_handle);
+}
 
 int main(void)
 {
-	
-	initialise_monitor_handles();
-	//return 0;
+	TaskHandle_t task1_handle;
+	TaskHandle_t task2_handle;
+
+	BaseType_t status;
+	initialise_monitor_handles(); //Use semihosting by excluding ThirdParty/SEGGER/SEGGER/Syscalls in Makefile
+	// printf("test\n");
+	// return 0;
+
+
 	// HAL_Init();
 	// //Set_PLL_Clock();
 	// SystemClock_Config();
@@ -201,16 +242,56 @@ int main(void)
 	// 	printf("fail 4\n");
 	// }else printf("ok\n");
 
+	
 	SystemInit();
 	dwt_init();
+	//char buf2[] = "uart test\n";
+
+    // USART2_GPIOInit();
+    // USART2_Init();
+	// USART_IRQInterruptConfig(IRQ_NO_USART2,ENABLE);
+    // USART_PeripheralControl(USART_2, ENABLE);
+	// while(1)
+	// {
+	// 	USART_SendData(&usart2_handle, (uint8_t*)buf2, strlen(buf2));   
+	// 	dwt_delay_ms(500);
+	// }
 
 	usb_device.ptr_out_buffer = rx_buffer;
 	usb_device.low_power_enable = 0;
 	usb_device.vbus_sensing_enable = 1;
-	
+	vInitPrioGroupValue();
 	LIS3DSH_init();
 	led_init();
 	usbd_initialize(&usb_device);
+
+	SEGGER_UART_init(200000);
+	
+	DWT_CTRL |= ( 1 << 0);
+
+	SEGGER_SYSVIEW_Conf();
+	// status = xTaskCreate(task1_handler, "Task-1", 200, "Hello world from Task-1", 2, &task1_handle);
+
+	// configASSERT(status == pdPASS);
+
+	// status = xTaskCreate(task2_handler, "Task-2", 200, "Hello world from Task-2", 2, &task2_handle);
+
+	// configASSERT(status == pdPASS);
+	status = xTaskCreate(led_green_handler, "LED_green_task", 200, NULL, 2, &task1_handle);
+
+	configASSERT(status == pdPASS);
+
+	status = xTaskCreate(led_red_handler, "LED_red_task", 200,NULL, 2, &task2_handle);
+
+	configASSERT(status == pdPASS);
+	vTaskStartScheduler();
+
+	while(1)
+	{
+		
+
+	}
+
 #if GPIO_J_K_STATE
 	int cnt = 0;
 	while(1)
@@ -447,6 +528,37 @@ void EXTI9_5_IRQHandler(void)
 	GPIO_IRQHandling(BLE_INT_Pin); //clear the pending event from exti line
 }
 
+static void led_green_handler(void* parameters)
+{
+	char buf[6]="green\n";
+	while(1)
+	{
+		SEGGER_SYSVIEW_PrintfTarget("Toggling green LED");
+		GPIO_ToggleOutputPin(GPIO_D, LED_GPIO_GREEN);
+		//cdc_transmit(buf, sizeof(buf));
+		//USART_SendDataIT(&usart2_handle, (uint8_t*)buf, strlen(buf));   
+		dwt_delay_ms(1000);
+	}
+
+}
+static void led_red_handler(void* parameters)
+{
+	char buf2[6]="red\n";
+
+	while(1)
+	{
+		SEGGER_SYSVIEW_PrintfTarget("Toggling red LED");
+		GPIO_ToggleOutputPin(GPIO_D, LED_GPIO_RED);
+		//cdc_transmit(buf2, sizeof(buf2));
+		//USART_SendDataIT(&usart2_handle, (uint8_t*)buf2, strlen(buf2));   
+		dwt_delay_ms(400);
+	}
+
+}
+// void USART2_IRQHandler(void)
+// {   
+//     USART_IRQHandling(&usart2_handle);
+// }
 void I2C_ApplicationEventCallback(I2C_Handle_t *pI2CHandle,uint8_t AppEv)
 {
 	return;
